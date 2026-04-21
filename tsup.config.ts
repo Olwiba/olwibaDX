@@ -13,7 +13,7 @@ export default defineConfig({
   onSuccess: createTsupBannerHook({
     segments: [
       { text: 'olwiba' },
-      { text: 'DX', colorHex: '#22c55e' },
+      { text: 'DX', colorHex: '#f97316' },
     ],
   }),
 });
