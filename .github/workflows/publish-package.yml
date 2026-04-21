@@ -1,0 +1,134 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: '@olwiba'
+
+      - name: Configure GitHub Packages auth
+        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.PACKAGES_TOKEN }}" >> .npmrc
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Resolve package metadata
+        run: |
+          echo "PKG_NAME=$(jq -r .name package.json)" >> "$GITHUB_ENV"
+          echo "PKG_VERSION=$(jq -r .version package.json)" >> "$GITHUB_ENV"
+
+      - name: Verify tag matches package version
+        if: github.event_name == 'push'
+        run: |
+          EXPECTED_TAG="v${PKG_VERSION}"
+          if [ "${GITHUB_REF_NAME}" != "$EXPECTED_TAG" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package version ${PKG_VERSION}"
+            exit 1
+          fi
+
+      - name: Pack
+        run: |
+          mkdir -p artifacts
+          npm pack --pack-destination artifacts
+
+      - name: Publish to GitHub Packages (if needed)
+        run: |
+          if npm view "${PKG_NAME}@${PKG_VERSION}" --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "Package ${PKG_NAME}@${PKG_VERSION} already exists. Skipping publish."
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        run: |
+          TAG="v${PKG_VERSION}"
+          TGZ=$(ls artifacts/*.tgz | head -1)
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "Release $TAG"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Discord
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is not configured. Skipping notification."
+            exit 0
+          fi
+
+          STATUS_TEXT="succeeded"
+          COLOR=5763719
+
+          if [ "$JOB_STATUS" != "success" ]; then
+            STATUS_TEXT="failed"
+            COLOR=15548997
+          fi
+
+          VERSION="${PKG_VERSION:-unknown}"
+          REF_NAME="${GITHUB_REF_NAME:-manual}"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          SHORT_SHA="$(printf '%.7s' "$GITHUB_SHA")"
+
+          jq -n \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg version "$VERSION" \
+            --arg ref "$REF_NAME" \
+            --arg status "$STATUS_TEXT" \
+            --arg actor "$GITHUB_ACTOR" \
+            --arg url "$RUN_URL" \
+            --arg sha "$SHORT_SHA" \
+            --argjson color "$COLOR" \
+            '{
+              embeds: [
+                {
+                  title: ($repo + " release " + $status),
+                  color: $color,
+                  url: $url,
+                  fields: [
+                    { name: "Version", value: $version, inline: true },
+                    { name: "Ref", value: $ref, inline: true },
+                    { name: "Actor", value: $actor, inline: true },
+                    { name: "Commit", value: $sha, inline: true },
+                    { name: "Workflow", value: $workflow, inline: false }
+                  ]
+                }
+              ]
+            }' > discord-payload.json
+
+          curl -sS \
+            -H "Content-Type: application/json" \
+            -d @discord-payload.json \
+            "$DISCORD_WEBHOOK_URL"

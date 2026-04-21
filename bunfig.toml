@@ -1,0 +1,3 @@
+[install.scopes]
+"@olwiba" = { url = "https://npm.pkg.github.com/", token = "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" }
+"@genesis" = { url = "https://npm.pkg.github.com/", token = "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" }

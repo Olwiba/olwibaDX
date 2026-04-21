@@ -1,0 +1,39 @@
+{
+  "name": "@olwiba/dx",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Developer experience tooling for the Olwiba ecosystem",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "tsc": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Olwiba/olwibaDX"
+  },
+  "author": "Olwiba",
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  }
+}
