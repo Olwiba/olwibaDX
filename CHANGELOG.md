@@ -1,5 +1,9 @@
 # @olwiba/dx Changelog
 
+## 0.0.2
+
+- `createTsupBannerHook` — returns an `onSuccess` function for tsup configs; shows the banner once on first successful build
+
 ## 0.0.1
 
 - Initial release

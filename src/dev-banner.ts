@@ -162,6 +162,18 @@ export async function printBanner(input: string | BannerSegment[] | BannerOption
   process.stdout.write(`${plain}${RESET}\n`)
 }
 
+export function createTsupBannerHook(
+  project: string | BannerOptions | LegacyBannerOptions
+): () => Promise<void> {
+  let shown = false
+  const normalized = normalizeSegments(project)
+  return async () => {
+    if (shown) return
+    shown = true
+    await printBanner(normalized)
+  }
+}
+
 export function createDevBannerPlugin(
   project: string | BannerOptions | LegacyBannerOptions
 ): DevPlugin {
