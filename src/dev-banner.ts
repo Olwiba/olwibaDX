@@ -1,5 +1,3 @@
-import { renderDosRebel } from "./dos-rebel-font"
-
 const RESET = "\x1b[0m"
 const DEFAULT_HEX = "#22D3EE"
 const WHITE_HEX = "#ffffff"
@@ -81,6 +79,7 @@ function normalizeSegments(
 }
 
 async function renderSegmentedFiglet(segments: BannerSegment[]) {
+  const { renderDosRebel } = await import("./dos-rebel-font")
   const cumulativeTexts: string[] = []
   let textSoFar = ""
   for (const segment of segments) {

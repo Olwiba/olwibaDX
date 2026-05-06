@@ -11,7 +11,14 @@ const OPTIONAL_PEER_DEPS = [
 
 export default [
   defineConfig({
-    entry: ["src/index.ts", "src/eslint.ts", "src/skills.ts", "src/generate-previews.ts"],
+    entry: [
+      "src/index.ts",
+      "src/eslint.ts",
+      "src/skills.ts",
+      "src/generate-previews.ts",
+      "src/ascii/index.ts",
+      "src/ascii-gif.ts",
+    ],
     format: ["esm"],
     dts: true,
     splitting: false,

@@ -1,6 +1,6 @@
 {
   "name": "@olwiba/dx",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -27,6 +27,14 @@
     "./generate-previews": {
       "import": "./dist/generate-previews.js",
       "types": "./dist/generate-previews.d.ts"
+    },
+    "./ascii": {
+      "import": "./dist/ascii/index.js",
+      "types": "./dist/ascii/index.d.ts"
+    },
+    "./ascii-gif": {
+      "import": "./dist/ascii-gif.js",
+      "types": "./dist/ascii-gif.d.ts"
     }
   },
   "files": [

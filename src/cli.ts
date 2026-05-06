@@ -9,8 +9,10 @@ const [command, subcommand] = process.argv.slice(2)
 
 if (command === "skills" && subcommand === "install") {
   await runSkillsInstall()
+} else if (command === "ascii-gif") {
+  await runAsciiGif()
 } else {
-  process.stdout.write("Usage:\n  dx skills install\n")
+  process.stdout.write("Usage:\n  dx skills install\n  dx ascii-gif --text <text> --out <file.gif>\n")
 }
 
 async function runSkillsInstall() {
@@ -44,4 +46,64 @@ async function runSkillsInstall() {
   }
 
   process.stdout.write(`\n${installed} installed, ${skipped} skipped\n`)
+}
+
+async function runAsciiGif() {
+  const { generateAsciiGif } = await import("./ascii-gif")
+  const flags = parseFlags(process.argv.slice(3))
+  const text = flags.text
+  const outputPath = flags.out ?? flags.output
+
+  if (!text || !outputPath) {
+    process.stderr.write("Usage: dx ascii-gif --text <text> --out <file.gif>\n")
+    process.exitCode = 1
+    return
+  }
+
+  await generateAsciiGif({
+    text,
+    outputPath,
+    accent: flags.accent,
+    font: flags.font,
+    color: flags.color,
+    accentColor: flags["accent-color"],
+    backgroundColor: flags["background-color"],
+    fps: parseNumberFlag(flags.fps),
+    duration: parseNumberFlag(flags.duration),
+    scale: parseNumberFlag(flags.scale),
+  })
+
+  process.stdout.write(`Generated ${outputPath}\n`)
+}
+
+function parseFlags(args: string[]): Record<string, string | undefined> {
+  const flags: Record<string, string | undefined> = {}
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    if (!arg.startsWith("--")) continue
+
+    const inline = /^--([^=]+)=(.*)$/.exec(arg)
+    if (inline) {
+      flags[inline[1]] = inline[2]
+      continue
+    }
+
+    const key = arg.slice(2)
+    const value = args[i + 1]
+    if (value && !value.startsWith("--")) {
+      flags[key] = value
+      i++
+    } else {
+      flags[key] = "true"
+    }
+  }
+
+  return flags
+}
+
+function parseNumberFlag(value: string | undefined): number | undefined {
+  if (value == null) return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
 }
