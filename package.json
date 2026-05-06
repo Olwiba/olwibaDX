@@ -1,6 +1,6 @@
 {
   "name": "@olwiba/dx",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -8,14 +8,30 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "dx": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./eslint": {
+      "import": "./dist/eslint.js",
+      "types": "./dist/eslint.d.ts"
+    },
+    "./skills": {
+      "import": "./dist/skills.js",
+      "types": "./dist/skills.d.ts"
+    },
+    "./generate-previews": {
+      "import": "./dist/generate-previews.js",
+      "types": "./dist/generate-previews.d.ts"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "skills-manifest.json"
   ],
   "scripts": {
     "build": "tsup",
@@ -24,8 +40,31 @@
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
+    "eslint": "^9.0.0",
+    "playwright": ">=1.40.0",
     "tsup": "^8.4.0",
     "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "eslint": ">=9.0.0",
+    "playwright": ">=1.40.0",
+    "@typescript-eslint/eslint-plugin": ">=8.0.0",
+    "@typescript-eslint/parser": ">=8.0.0",
+    "eslint-plugin-react-hooks": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@typescript-eslint/eslint-plugin": {
+      "optional": true
+    },
+    "@typescript-eslint/parser": {
+      "optional": true
+    },
+    "eslint-plugin-react-hooks": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    }
   },
   "repository": {
     "type": "git",
