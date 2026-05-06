@@ -6,6 +6,7 @@ const OPTIONAL_PEER_DEPS = [
   "@typescript-eslint/eslint-plugin",
   "@typescript-eslint/parser",
   "eslint-plugin-react-hooks",
+  "puppeteer-core",
 ]
 
 export default [
@@ -17,7 +18,7 @@ export default [
     sourcemap: true,
     clean: true,
     treeshake: true,
-    external: ["eslint", "playwright", ...OPTIONAL_PEER_DEPS],
+    external: ["eslint", "puppeteer-core", ...OPTIONAL_PEER_DEPS],
     onSuccess: createProjectTsupBannerHook(projectConfig),
   }),
   defineConfig({
