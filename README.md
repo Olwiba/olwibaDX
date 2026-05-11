@@ -23,17 +23,23 @@
 
 ## What This Is
 
-`@olwiba/dx` is a small toolbox of build-time and Node-only developer experience helpers used across the Olwiba ecosystem.
+`@olwiba/dx` is a collection of tools focused on delivering the best developer experience when building projects.
 
-It powers the dev server banners, the ASCII art you see in our READMEs, the figlet renderer behind `<AsciiText>` in `@olwiba/cn`, and the screenshot pipeline that pre-renders the isometric tiles on our docs sites.
+A lot of what's in here reflects personal preference — small build-time and Node-only helpers I reach for across every project. The package grows as the ecosystem grows, so expect new features over time.
 
-The package is pure Node, build-time only. Nothing in it ships to a browser bundle.
+It is pure Node, build-time only. Nothing in it ships to a browser bundle.
 
 ## Installation
 
 ```bash
 bun add -d @olwiba/dx
 ```
+
+## Features
+
+### Dev Banners
+
+Coloured ASCII banners printed on Vite dev server start and tsup build success. Makes it instantly obvious which project is running in your terminal.
 
 ```ts
 // vite.config.ts
@@ -53,18 +59,19 @@ export default defineConfig({
 
 For tsup, swap `createDevBannerPlugin` for `createTsupBannerHook` and pass it to `onSuccess`. For a one-shot print, call `printBanner` directly.
 
-## What's Included
+### ASCII Text
 
-**Dev banners** Coloured ASCII banners on Vite dev start and tsup build success
-**ASCII utilities** Figlet renderer + DOS Rebel font, used by `<AsciiText>` in `@olwiba/cn`
-**ASCII GIF generator** Render an animated ASCII GIF from any text — what powers our README banners
-**Preview generator** Puppeteer-based screenshot tool for pre-rendering isometric docs tiles
-**ESLint config** Opinionated lint rules shared across the ecosystem
-**Skills manifest** Installable Claude/Amp skills for working in Olwiba projects
+Figlet renderer with a bundled DOS Rebel font. Powers the `<AsciiText>` component in `@olwiba/cn`.
 
-## ASCII GIF
+```ts
+import { renderAscii } from "@olwiba/dx/ascii";
 
-Generate an animated ASCII GIF from any text. Used to produce the README banner you see at the top of this file.
+const art = renderAscii("hello", { font: "dosrebel" });
+```
+
+### ASCII GIF Generator
+
+Render an animated ASCII GIF from any text. This is what produced the README banner you see at the top of this file.
 
 ```bash
 bunx @olwiba/dx ascii-gif \
@@ -73,7 +80,22 @@ bunx @olwiba/dx ascii-gif \
   --out ./public/olwibaDX.gif
 ```
 
-## ESLint & Skills
+### Preview Generator
+
+Puppeteer-based screenshot tool used to pre-render the isometric preview tiles on docs sites.
+
+```ts
+import { generatePreviews } from "@olwiba/dx";
+
+await generatePreviews({
+  url: "http://localhost:3000/preview",
+  outputDir: "./public/previews",
+});
+```
+
+### ESLint Config
+
+Opinionated lint rules shared across the ecosystem.
 
 ```ts
 // eslint.config.js
@@ -81,6 +103,10 @@ import olwibaConfig from "@olwiba/dx/eslint";
 
 export default [...olwibaConfig];
 ```
+
+### Skills
+
+Installable Claude/Amp skills manifest for working in Olwiba projects.
 
 ```bash
 bunx @olwiba/dx skills install
