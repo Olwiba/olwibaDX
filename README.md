@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sponsors/Olwiba"><img src="https://img.shields.io/static/v1?label=Sponsor&message=❤&logo=GitHub&color=22c55e" alt="Sponsor" /></a>
+  <a href="https://github.com/sponsors/Olwiba"><img src="https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=22c55e" alt="Sponsor" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/Olwiba/olwibaDX?label=license&logo=github" alt="License" /></a>
   <a href="https://github.com/Olwiba/olwibaDX/issues"><img src="https://img.shields.io/github/issues/Olwiba/olwibaDX" alt="Issues" /></a>
 </p>
