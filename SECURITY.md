@@ -1,29 +1,9 @@
 # Security Policy
 
-## Reporting a vulnerability
+If you believe you have found a security vulnerability, we encourage you to let us know right away.
 
-If you discover a security vulnerability in olwibaDX, please **do not open a
-public GitHub issue**.
+We will investigate all legitimate reports and do our best to quickly fix the problem.
 
-Instead, report it privately via GitHub's
-[security advisory form](https://github.com/Olwiba/olwibaDX/security/advisories/new).
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software.
 
-Please include:
-
-- a description of the issue
-- steps to reproduce
-- the affected version(s) of `@olwiba/dx`
-- any proof-of-concept or example code, if available
-
-You should expect an initial response within a few days. Once the issue is
-confirmed, a fix will be prepared, released, and disclosed publicly via a
-GitHub Security Advisory.
-
-## Supported versions
-
-Only the latest published `@olwiba/dx` minor version receives security fixes.
-
-## Scope
-
-This policy covers the contents of the `@olwiba/dx` npm package and the
-`olwibaDX` repository.
+To do this, please visit the security tab of the repository and click the [Report a vulnerability](https://github.com/Olwiba/olwibaDX/security/advisories/new) button.
