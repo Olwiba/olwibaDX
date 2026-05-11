@@ -74,13 +74,29 @@
       "optional": true
     }
   },
+  "homepage": "https://github.com/Olwiba/olwibaDX#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/Olwiba/olwibaDX"
   },
+  "bugs": {
+    "url": "https://github.com/Olwiba/olwibaDX/issues"
+  },
+  "keywords": [
+    "olwiba",
+    "dx",
+    "developer-experience",
+    "vite-plugin",
+    "tsup",
+    "dev-banner",
+    "ascii",
+    "figlet",
+    "eslint-config"
+  ],
   "author": "Olwiba",
   "license": "MIT",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   }
 }

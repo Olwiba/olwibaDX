@@ -60,17 +60,15 @@ export function getAsciiCellIntensity(cell: AsciiCell, options: AsciiFrameState)
     return 0.15 + drift
   }
 
-  const noise =
-    loop == null
-      ? getLiveNoise(cell, time)
-      : getLoopNoise(cell, loop)
+  if (loop != null) {
+    return getLoopIntensity(cell, loop)
+  }
+
+  const noise = getLiveNoise(cell, time)
 
   const seed = cell.col * 7.13 + cell.row * 13.37
   const flickerPhase = Math.sin(seed) * 1000
-  const flickerWave =
-    loop == null
-      ? Math.sin(time * 0.8 + flickerPhase)
-      : Math.sin(loop * 2 + flickerPhase)
+  const flickerWave = Math.sin(time * 0.8 + flickerPhase)
   const flicker = flickerWave > 0.97 ? 0.15 : 0
 
   let intensity = 0.7 + noise + flicker
@@ -139,11 +137,13 @@ function getLiveNoise(cell: AsciiCell, time: number): number {
   )
 }
 
-function getLoopNoise(cell: AsciiCell, loop: number): number {
-  return (
-    Math.sin(cell.col * 0.18 + loop) * 0.12 +
-    Math.sin(cell.row * 0.42 + cell.col * 0.1 + loop * 2) * 0.1 +
-    Math.sin(cell.col * 0.08 - cell.row * 0.22 - loop) * 0.08 +
-    Math.sin((cell.col + cell.row) * 0.15 + loop * 3) * 0.07
-  )
+function getLoopIntensity(cell: AsciiCell, loop: number): number {
+  const flow =
+    Math.sin(cell.col * 0.08 + loop) * 0.055 +
+    Math.sin(cell.row * 0.22 - loop * 0.75) * 0.04
+  const shimmer = (Math.sin(cell.col * 0.16 + cell.row * 0.08 - loop * 2) + 1) / 2
+  const highlight = Math.pow(shimmer, 4) * 0.22
+  const intensity = 0.68 + flow + highlight
+
+  return Math.max(0.55, Math.min(1, intensity))
 }

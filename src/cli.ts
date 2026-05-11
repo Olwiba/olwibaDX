@@ -68,9 +68,12 @@ async function runAsciiGif() {
     color: flags.color,
     accentColor: flags["accent-color"],
     backgroundColor: flags["background-color"],
+    blendColor: flags["blend-color"],
     fps: parseNumberFlag(flags.fps),
     duration: parseNumberFlag(flags.duration),
     scale: parseNumberFlag(flags.scale),
+    padding: parseNumberFlag(flags.padding),
+    transparent: flags.transparent === "true",
   })
 
   process.stdout.write(`Generated ${outputPath}\n`)

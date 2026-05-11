@@ -180,7 +180,7 @@ export function createDevBannerPlugin(
   const { segments, compactSegments } = normalizeSegments(project)
   const bannerText = segments.map((segment) => segment.text).join("")
   return {
-    name: `nexus-dev-banner-${bannerText.toLowerCase()}`,
+    name: `olwiba-dev-banner-${bannerText.toLowerCase()}`,
     apply: "serve",
     configureServer(_server: unknown) {
       if (shown) return
