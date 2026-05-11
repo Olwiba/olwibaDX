@@ -25,7 +25,7 @@
 
 `@olwiba/dx` is a collection of tools focused on delivering the best developer experience when building projects.
 
-A lot of what's in here reflects personal preference — small build-time and Node-only helpers I reach for across every project. The package grows as the ecosystem grows, so expect new features over time.
+A lot of what's in here reflects personal preference — small build-time and helpers I've used in my projects. The package grows as the ecosystem grows, so expect new features over time.
 
 It is pure Node, build-time only. Nothing in it ships to a browser bundle.
 
