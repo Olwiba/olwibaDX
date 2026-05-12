@@ -2,7 +2,8 @@
 
 Thanks for your interest in contributing to `@olwiba/dx`. We're happy to have you here.
 
-Please take a moment to review this document before submitting your first pull request. We also strongly recommend that you check for open issues and pull requests to see if someone else is working on something similar.
+Please take a moment to review this document before submitting your first pull request.  
+We also strongly recommend that you check for open issues and pull requests to see if someone else is working on something similar.
 
 If you need any help, feel free to reach out to [@Olwiba](https://github.com/Olwiba).
 
@@ -142,9 +143,8 @@ the following categories:
 
   e.g. `feat(ascii-gif): add transparent background option`
 
-If you are interested in the detailed specification you can visit
-https://www.conventionalcommits.org/ or check out the
-[Angular Commit Message Guidelines](https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#-commit-message-guidelines).
+If you are interested in the detailed specification, you can visit  
+https://www.conventionalcommits.org/
 
 ## Requests for new features
 
