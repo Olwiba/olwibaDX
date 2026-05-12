@@ -25,7 +25,7 @@
 
 `@olwiba/dx` is a collection of tools focused on delivering the best developer experience when building projects.
 
-A lot of what's in here reflects personal preference. Small build-time tooling and helpers I've used in my projects.  
+A lot of what's in here reflects personal preference.  
 This package grows as the ecosystem grows, so expect new features over time.
 
 Feel free to request additions or leverage what's already added as you see fit.
