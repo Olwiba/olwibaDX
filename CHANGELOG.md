@@ -1,3 +1,10 @@
+# Changelog
+
+## 0.0.9
+
+### Changed
+- `skills install` now fetches from a remote manifest instead of bundled data
+
 # @olwiba/dx Changelog
 
 ## 0.0.8
