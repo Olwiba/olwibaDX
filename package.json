@@ -38,8 +38,7 @@
     }
   },
   "files": [
-    "dist",
-    "skills-manifest.json"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",

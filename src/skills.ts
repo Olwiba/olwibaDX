@@ -1,10 +1,15 @@
-export type Skill = {
+export interface ManifestSkill {
+  slug: string
   name: string
-  source: string | null
   description: string
+  category?: string
+  providers?: string[]
+  examples?: string[]
+  tip?: string | null
+  contentUrl: string
 }
 
-export type SkillsManifest = {
+export interface SkillsManifest {
   version: string
-  skills: Skill[]
+  skills: ManifestSkill[]
 }
