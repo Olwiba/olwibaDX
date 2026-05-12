@@ -27,9 +27,6 @@ jobs:
           registry-url: https://registry.npmjs.org
           scope: '@olwiba'
 
-      - name: Update npm to latest (required for OIDC publishing)
-        run: npm install -g npm@latest
-
       - name: Install
         run: bun install --frozen-lockfile
 
