@@ -1,5 +1,11 @@
 # Changelog
 
+
+## 0.0.10
+
+### Changed
+- Packages now published via npm Trusted Publishing (OIDC) with provenance attestation
+
 ## 0.0.9
 
 ### Changed
