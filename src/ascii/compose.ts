@@ -56,18 +56,30 @@ export function getAsciiAccentColumns(
   if (!accent) return new Set<number>()
 
   const columns = new Set<number>()
+  const accentRanges: Array<{ start: number; end: number }> = []
+  let searchFrom = 0
+  while (true) {
+    const idx = text.indexOf(accent, searchFrom)
+    if (idx === -1) break
+    accentRanges.push({ start: idx, end: idx + accent.length })
+    searchFrom = idx + 1
+  }
+  if (accentRanges.length === 0) return columns
+
   let offsetX = 0
+  let charIndex = 0
 
   for (const ch of text) {
     const code = ch.charCodeAt(0)
     const glyph = font.chars.get(code) ?? font.chars.get(32)
-    if (!glyph) continue
+    if (!glyph) { charIndex++; continue }
 
     const width = Math.max(...glyph.map((line) => line.length))
-    if (accent.includes(ch)) {
+    if (accentRanges.some((r) => charIndex >= r.start && charIndex < r.end)) {
       for (let col = 0; col < width; col++) columns.add(offsetX + col)
     }
     offsetX += width
+    charIndex++
   }
 
   return columns
