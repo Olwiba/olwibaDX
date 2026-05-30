@@ -1,6 +1,6 @@
 {
   "name": "@olwiba/dx",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -35,10 +35,6 @@
     "./ascii-gif": {
       "import": "./dist/ascii-gif.js",
       "types": "./dist/ascii-gif.d.ts"
-    },
-    "./env": {
-      "import": "./dist/env/index.js",
-      "types": "./dist/env/index.d.ts"
     }
   },
   "files": [

@@ -5,6 +5,8 @@ import path from 'node:path';
 export interface PreviewEntry {
   name: string;
   urlPath?: string;
+  /** Override config.selector for this entry (e.g. null for full-page captures). */
+  selector?: string | null;
 }
 
 export interface GeneratePreviewsConfig {
@@ -93,36 +95,72 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
     for (const component of components) {
       const urlPath = component.urlPath ?? `/docs/components/${component.name}`;
       const url = `${baseUrl}${urlPath}`;
+      const captureSelector =
+        component.selector !== undefined ? component.selector : selector;
 
       for (const theme of themes) {
         const page = await browser.newPage();
         try {
+          // next-themes (Fumadocs RootProvider) defaults to system — match OS unless we override early.
+          await page.emulateMediaFeatures([
+            { name: 'prefers-color-scheme', value: theme },
+          ]);
+
+          // Run before page scripts (next-themes / ModeSwitcher) so light captures stay light.
+          await page.evaluateOnNewDocument(
+            `((scheme) => {
+              const isDark = scheme === 'dark';
+              const apply = () => {
+                const root = document.documentElement;
+                root.classList.toggle('dark', isDark);
+                root.style.colorScheme = scheme;
+              };
+              try { localStorage.setItem('theme', scheme); } catch {}
+              apply();
+              new MutationObserver(apply).observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['class'],
+              });
+            })(${JSON.stringify(theme)})`,
+          );
+
           await page.setViewport({ width: vw, height: vh });
           await page.goto(url, { waitUntil: 'networkidle0' });
 
-          if (theme === 'dark') {
-            await page.evaluate("document.documentElement.classList.add('dark')");
-            await new Promise((r) => setTimeout(r, 150));
-          }
+          await page.evaluate(
+            `((scheme) => {
+              const isDark = scheme === 'dark';
+              document.documentElement.classList.toggle('dark', isDark);
+              document.documentElement.style.colorScheme = scheme;
+              try { localStorage.setItem('theme', scheme); } catch {}
+            })(${JSON.stringify(theme)})`,
+          );
+
+          await page.waitForFunction(
+            `(scheme) => document.documentElement.classList.contains('dark') === (scheme === 'dark')`,
+            { timeout: 5000 },
+            theme,
+          );
+          await new Promise((r) => setTimeout(r, 300));
 
           const filename =
             themes.length > 1 ? `${component.name}-${theme}.png` : `${component.name}.png`;
           const filepath = path.join(outputDir, filename);
 
-          if (selector === null) {
+          if (captureSelector === null) {
             await page.screenshot({ path: filepath, clip: { x: 0, y: 0, width: vw, height: vh } });
             manifest.push({ name: component.name, theme, file: filename, width: vw, height: vh });
           } else {
-            const el = await page.waitForSelector(selector, { timeout: 10_000 });
-            if (!el) throw new Error(`Selector not found: ${selector}`);
+            const el = await page.waitForSelector(captureSelector, { timeout: 10_000 });
+            if (!el) throw new Error(`Selector not found: ${captureSelector}`);
 
             await page.evaluate(
-              `document.querySelector(${JSON.stringify(selector)}).style.minHeight = '0'`,
+              `document.querySelector(${JSON.stringify(captureSelector)}).style.minHeight = '0'`,
             );
             await new Promise((r) => setTimeout(r, 100));
 
             const box = await el.boundingBox();
-            if (!box) throw new Error(`Could not get bounding box for: ${selector}`);
+            if (!box) throw new Error(`Could not get bounding box for: ${captureSelector}`);
 
             if (padding > 0) {
               const clip = {

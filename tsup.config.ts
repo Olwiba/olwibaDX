@@ -18,7 +18,6 @@ export default [
       "src/generate-previews.ts",
       "src/ascii/index.ts",
       "src/ascii-gif.ts",
-      "src/env/index.ts",
     ],
     format: ["esm"],
     dts: true,
