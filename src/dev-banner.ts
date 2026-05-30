@@ -10,6 +10,7 @@ export type BannerSegment = {
 type BannerOptions = {
   segments: BannerSegment[]
   compactSegments?: BannerSegment[]
+  rowColors?: string[]
 }
 
 type LegacyBannerOptions = {
@@ -42,7 +43,7 @@ function visibleLen(value: string) {
 
 function normalizeSegments(
   input: string | BannerOptions | LegacyBannerOptions
-): { segments: BannerSegment[]; compactSegments?: BannerSegment[] } {
+): { segments: BannerSegment[]; compactSegments?: BannerSegment[]; rowColors?: string[] } {
   if (typeof input === "string") {
     return { segments: [{ text: input, colorHex: WHITE_HEX }] }
   }
@@ -60,7 +61,7 @@ function normalizeSegments(
       input.compactSegments && input.compactSegments.length > 0
         ? normalize(input.compactSegments)
         : undefined
-    return { segments, compactSegments }
+    return { segments, compactSegments, rowColors: input.rowColors }
   }
 
   const suffix = input.suffix ?? ""
@@ -100,6 +101,14 @@ async function renderSegmentedFiglet(segments: BannerSegment[]) {
   return { lines, boundaryLines, ansiBySegment, widestLine }
 }
 
+function printRowColoredFiglet(lines: string[], rowColors: string[]) {
+  for (let i = 0; i < lines.length; i++) {
+    const hex = rowColors[i % rowColors.length] ?? WHITE_HEX
+    const ansi = hexToAnsi24(hex) ?? "\x1b[97m"
+    process.stdout.write(`${ansi}${lines[i]}${RESET}\n`)
+  }
+}
+
 function printColoredFiglet(
   lines: string[],
   boundaryLines: string[][],
@@ -125,10 +134,11 @@ function printColoredFiglet(
 
 export async function printBanner(input: string | BannerSegment[] | BannerOptions) {
   const normalized = Array.isArray(input)
-    ? { segments: input, compactSegments: undefined }
+    ? { segments: input, compactSegments: undefined, rowColors: undefined }
     : normalizeSegments(input)
   const segments = normalized.segments
   const compactSegments = normalized.compactSegments
+  const rowColors = normalized.rowColors
   if (!segments.length) return
 
   process.stdout.write(`${RESET}\n`)
@@ -136,7 +146,11 @@ export async function printBanner(input: string | BannerSegment[] | BannerOption
   const primary = await renderSegmentedFiglet(segments)
 
   if (terminalColumns === 0 || primary.widestLine <= terminalColumns) {
-    printColoredFiglet(primary.lines, primary.boundaryLines, primary.ansiBySegment)
+    if (rowColors && rowColors.length > 0) {
+      printRowColoredFiglet(primary.lines, rowColors)
+    } else {
+      printColoredFiglet(primary.lines, primary.boundaryLines, primary.ansiBySegment)
+    }
     return
   }
 
@@ -177,7 +191,7 @@ export function createDevBannerPlugin(
   project: string | BannerOptions | LegacyBannerOptions
 ): DevPlugin {
   let shown = false
-  const { segments, compactSegments } = normalizeSegments(project)
+  const { segments, compactSegments, rowColors } = normalizeSegments(project)
   const bannerText = segments.map((segment) => segment.text).join("")
   return {
     name: `olwiba-dev-banner-${bannerText.toLowerCase()}`,
@@ -185,7 +199,7 @@ export function createDevBannerPlugin(
     configureServer(_server: unknown) {
       if (shown) return
       shown = true
-      void printBanner({ segments, compactSegments })
+      void printBanner({ segments, compactSegments, rowColors })
     },
   }
 }

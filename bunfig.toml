@@ -2,7 +2,6 @@
 # Reference: https://bun.com/docs/runtime/bunfig
 
 [install]
-# Supply-chain attack mitigation.
-# Refuse to install npm package versions published in the last 7 days.
-# Bypass per-install with: bun add <pkg> --minimum-release-age 0
+# Supply-chain attack mitigation — third-party packages blocked for 7 days after publish.
+# @olwiba/* packages are first-party — bypass with: bun add <pkg>@<ver> --minimum-release-age 0
 minimumReleaseAge = 604800

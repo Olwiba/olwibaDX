@@ -1,6 +1,21 @@
 # Changelog
 
 
+## 0.0.12
+
+### Added
+
+- Parse annotated `.env.example` specs for environment variable validation
+
+### Fixed
+
+- Correct accent column matching to use substring position instead of character-set membership
+
+## 0.0.11
+
+### Fixed
+- `generatePreviews` forces light/dark before page scripts run (`evaluateOnNewDocument`), emulates `prefers-color-scheme`, and waits for `<html class="dark">` to match — fixes Fumadocs/next-themes sites where post-load toggles were overridden.
+
 ## 0.0.10
 
 ### Changed
