@@ -1,6 +1,17 @@
 # Changelog
 
 
+
+## 0.0.13
+
+### Added
+
+- Parse annotated `.env.example` specs to drive environment variable validation
+
+### Fixed
+
+- Correct accent column matching to use substring position instead of char-set membership
+
 ## 0.0.12
 
 ### Added
