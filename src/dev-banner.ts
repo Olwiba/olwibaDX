@@ -53,7 +53,7 @@ function visibleLen(value: string) {
 
 function normalizeSegments(
   input: string | BannerOptions | LegacyBannerOptions
-): { segments: BannerSegment[]; compactSegments?: BannerSegment[]; rowColors?: string[] } {
+): { segments: BannerSegment[]; compactSegments?: BannerSegment[]; rowColors?: string[]; rowBgColor?: string } {
   if (typeof input === "string") {
     return { segments: [{ text: input, colorHex: WHITE_HEX }] }
   }
