@@ -25,6 +25,7 @@ export interface GenerateAsciiGifOptions {
   outputPath: string
   color?: string
   accentColor?: string
+  rowColors?: string[]
   backgroundColor?: string
   blendColor?: string
   fps?: number
@@ -46,6 +47,51 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
   const layout = composeAsciiText(font, options.text)
   const bounds = getLayoutBounds(layout)
   const accentColumns = getAsciiAccentColumns(font, options.text, options.accent ?? "")
+  const width = Math.ceil(bounds.cols * ASCII_CHAR_WIDTH * scale) + padding * 2
+  const height = bounds.rows * ASCII_CHAR_HEIGHT * scale + padding * 2
+  const frameCount = Math.max(1, Math.round(fps * duration))
+  const delay = Math.max(1, Math.round(100 / fps))
+  const frames: Uint8Array[] = []
+
+  // Row-colors path — one palette set per unique row color, applied by cell.row
+  if (options.rowColors && options.rowColors.length > 0) {
+    const uniqueRowColors = [...new Set(options.rowColors)]
+    const rowPalette = createRowColorPalette({
+      backgroundColor: options.backgroundColor ?? "#0a0a0a",
+      blendColor: options.blendColor ?? options.backgroundColor ?? "#0a0a0a",
+      rowColors: uniqueRowColors,
+      levels,
+      transparent: options.transparent ?? false,
+    })
+    for (let frame = 0; frame < frameCount; frame++) {
+      frames.push(
+        renderIndexedAsciiFrameWithRowColors({
+          layout,
+          phase: frame / frameCount,
+          width,
+          height,
+          scale,
+          levels,
+          bounds,
+          padding,
+          rowColorsInput: options.rowColors,
+          uniqueRowColors,
+        }),
+      )
+    }
+    const bytes = encodeGif({
+      width,
+      height,
+      delay,
+      palette: rowPalette.table,
+      frames,
+      transparent: options.transparent ?? false,
+    })
+    mkdirSync(path.dirname(options.outputPath), { recursive: true })
+    writeFileSync(options.outputPath, bytes)
+    return
+  }
+
   const palette = createPalette({
     backgroundColor: options.backgroundColor ?? "#0a0a0a",
     blendColor: options.blendColor ?? options.backgroundColor ?? "#0a0a0a",
@@ -54,11 +100,6 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
     levels,
     transparent: options.transparent ?? false,
   })
-  const width = Math.ceil(bounds.cols * ASCII_CHAR_WIDTH * scale) + padding * 2
-  const height = bounds.rows * ASCII_CHAR_HEIGHT * scale + padding * 2
-  const frameCount = Math.max(1, Math.round(fps * duration))
-  const delay = Math.max(1, Math.round(100 / fps))
-  const frames: Uint8Array[] = []
 
   for (let frame = 0; frame < frameCount; frame++) {
     frames.push(
@@ -132,6 +173,69 @@ function renderIndexedAsciiFrame(options: RenderIndexedFrameOptions): Uint8Array
   }
 
   return pixels
+}
+
+interface RenderWithRowColorsOptions {
+  layout: AsciiTextLayout
+  phase: number
+  width: number
+  height: number
+  scale: number
+  levels: number
+  bounds: LayoutBounds
+  padding: number
+  rowColorsInput: string[]
+  uniqueRowColors: string[]
+}
+
+function renderIndexedAsciiFrameWithRowColors(options: RenderWithRowColorsOptions): Uint8Array {
+  const pixels = new Uint8Array(options.width * options.height)
+  const charWidth = Math.round(ASCII_CHAR_WIDTH * options.scale)
+  const charHeight = Math.round(ASCII_CHAR_HEIGHT * options.scale)
+
+  for (const cell of options.layout.cells) {
+    const intensity = getAsciiCellIntensity(cell, { phase: options.phase })
+    const level = Math.max(0, Math.min(options.levels - 1, Math.round(intensity * (options.levels - 1))))
+    const rowColor = options.rowColorsInput[cell.row % options.rowColorsInput.length] ?? options.rowColorsInput[0]!
+    const colorSetIndex = Math.max(0, options.uniqueRowColors.indexOf(rowColor))
+    const colorIndex = 1 + colorSetIndex * options.levels + level
+    const x0 = options.padding + Math.round((cell.col - options.bounds.minCol) * ASCII_CHAR_WIDTH * options.scale)
+    const y0 = options.padding + (cell.row - options.bounds.minRow) * charHeight
+    const x1 = Math.min(options.width, x0 + charWidth)
+    const y1 = Math.min(options.height, y0 + charHeight)
+    for (let y = y0; y < y1; y++) {
+      const row = y * options.width
+      for (let x = x0; x < x1; x++) {
+        pixels[row + x] = colorIndex
+      }
+    }
+  }
+
+  return pixels
+}
+
+function createRowColorPalette(options: {
+  backgroundColor: string
+  blendColor: string
+  rowColors: string[]
+  levels: number
+  transparent: boolean
+}) {
+  const bg = parseColor(options.backgroundColor)
+  const blend = parseColor(options.blendColor)
+  const table: number[] = [bg.r, bg.g, bg.b]
+
+  for (const colorHex of options.rowColors) {
+    const color = parseColor(colorHex)
+    for (let level = 0; level < options.levels; level++) {
+      const alpha = level / (options.levels - 1)
+      const mixed = mix(blend, color, alpha)
+      table.push(mixed.r, mixed.g, mixed.b)
+    }
+  }
+
+  while (table.length < 256 * 3) table.push(0, 0, 0)
+  return { table: Uint8Array.from(table.slice(0, 256 * 3)) }
 }
 
 function getLayoutBounds(layout: AsciiTextLayout): LayoutBounds {
