@@ -7,6 +7,8 @@ const OPTIONAL_PEER_DEPS = [
   "@typescript-eslint/parser",
   "eslint-plugin-react-hooks",
   "puppeteer-core",
+  "sharp",
+  "lucide-static",
 ]
 
 export default [
@@ -18,6 +20,7 @@ export default [
       "src/generate-previews.ts",
       "src/ascii/index.ts",
       "src/ascii-gif.ts",
+      "src/generate-assets.ts",
     ],
     format: ["esm"],
     dts: true,
@@ -25,7 +28,7 @@ export default [
     sourcemap: true,
     clean: true,
     treeshake: true,
-    external: ["eslint", "puppeteer-core", ...OPTIONAL_PEER_DEPS],
+    external: ["eslint", "puppeteer-core", "sharp", "lucide-static", ...OPTIONAL_PEER_DEPS],
     onSuccess: createProjectTsupBannerHook(projectConfig),
   }),
   defineConfig({

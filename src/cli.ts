@@ -11,11 +11,14 @@ if (command === "skills" && subcommand === "install") {
   await runSkillsInstall()
 } else if (command === "ascii-gif") {
   await runAsciiGif()
+} else if (command === "generate-assets") {
+  await runGenerateAssets()
 } else {
   process.stdout.write(
     "Usage:\n" +
       "  dx skills install [--source <url>] [--target claude|amp] [--all] [--name a,b,c]\n" +
-      "  dx ascii-gif --text <text> --out <file.gif>\n",
+      "  dx ascii-gif --text <text> --out <file.gif>\n" +
+      "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>]\n",
   )
 }
 
@@ -209,6 +212,35 @@ function parseFlags(args: string[]): Record<string, string | undefined> {
   }
 
   return flags
+}
+
+async function runGenerateAssets() {
+  const { generateAssets } = await import("./generate-assets")
+  const flags = parseFlags(process.argv.slice(3))
+
+  const name = flags.name
+  const icon = flags.icon
+  const color = flags.color
+  const outputDir = flags.out ?? flags.output ?? "public"
+
+  if (!name || !icon || !color) {
+    process.stderr.write(
+      "Usage: dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>]\n",
+    )
+    process.exitCode = 1
+    return
+  }
+
+  process.stdout.write(`Generating assets for "${name}"…\n`)
+  try {
+    const result = await generateAssets({ name, icon, color, outputDir })
+    process.stdout.write(`Generated ${result.files.length} files in ${outputDir}/\n`)
+    for (const f of result.files) process.stdout.write(`  ${f}\n`)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    process.stderr.write(`Error: ${message}\n`)
+    process.exitCode = 1
+  }
 }
 
 function parseNumberFlag(value: string | undefined): number | undefined {

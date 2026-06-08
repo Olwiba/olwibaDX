@@ -1,6 +1,6 @@
 {
   "name": "@olwiba/dx",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -35,6 +35,10 @@
     "./ascii-gif": {
       "import": "./dist/ascii-gif.js",
       "types": "./dist/ascii-gif.d.ts"
+    },
+    "./generate-assets": {
+      "import": "./dist/generate-assets.js",
+      "types": "./dist/generate-assets.d.ts"
     }
   },
   "files": [
@@ -57,7 +61,9 @@
     "puppeteer-core": ">=22.0.0",
     "@typescript-eslint/eslint-plugin": ">=8.0.0",
     "@typescript-eslint/parser": ">=8.0.0",
-    "eslint-plugin-react-hooks": ">=5.0.0"
+    "eslint-plugin-react-hooks": ">=5.0.0",
+    "sharp": ">=0.32.0",
+    "lucide-static": ">=0.400.0"
   },
   "peerDependenciesMeta": {
     "@typescript-eslint/eslint-plugin": {
@@ -70,6 +76,12 @@
       "optional": true
     },
     "puppeteer-core": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
+    },
+    "lucide-static": {
       "optional": true
     }
   },
