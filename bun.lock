@@ -7,6 +7,7 @@
       "devDependencies": {
         "@types/node": "^22.5.4",
         "eslint": "^9.0.0",
+        "lucide-static": "^0.488.0",
         "puppeteer-core": "^24.0.0",
         "sharp": "^0.33.0",
         "tsup": "^8.4.0",
@@ -423,6 +424,8 @@
     "lodash.merge": ["lodash.merge@4.6.2", "", {}, "sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ=="],
 
     "lru-cache": ["lru-cache@7.18.3", "", {}, "sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA=="],
+
+    "lucide-static": ["lucide-static@0.488.0", "", {}, "sha512-fK2OzjsY0K35nHrBHG9sp7jBscEjMH2Ktn9lVBAhHw6J4QQXCU9trxXxnAdIb1XejVZyPZlcz7O5Kz2iK3k1gA=="],
 
     "magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 
