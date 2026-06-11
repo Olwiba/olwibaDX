@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v0.1.20)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -16,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -26,25 +33,28 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      - name: Resolve and align version from tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            REF="${{ inputs.tag }}"
+          else
+            REF="${GITHUB_REF_NAME}"
+          fi
+          TAG_VERSION="${REF#v}"
+          PKG_VERSION=$(jq -r .version package.json)
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "package.json version ($PKG_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+          npm pkg set "version=${TAG_VERSION}"
+          echo "PKG_NAME=$(jq -r .name package.json)" >> "$GITHUB_ENV"
+          echo "PKG_VERSION=${TAG_VERSION}" >> "$GITHUB_ENV"
+
       - name: Install
         run: bun install --frozen-lockfile
 
       - name: Build
         run: bun run build
-
-      - name: Resolve package metadata
-        run: |
-          echo "PKG_NAME=$(jq -r .name package.json)" >> "$GITHUB_ENV"
-          echo "PKG_VERSION=$(jq -r .version package.json)" >> "$GITHUB_ENV"
-
-      - name: Verify tag matches package version
-        if: github.event_name == 'push'
-        run: |
-          EXPECTED_TAG="v${PKG_VERSION}"
-          if [ "${GITHUB_REF_NAME}" != "$EXPECTED_TAG" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match package version ${PKG_VERSION}"
-            exit 1
-          fi
 
       - name: Pack
         run: |
