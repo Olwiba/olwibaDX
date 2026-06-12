@@ -1,41 +1,26 @@
 # Changelog
 
-
-
-
-
-
-
-
 ## 0.0.18
 
-### Changed
-
-- No notable changes.
+No user-facing changes.
 
 ## 0.0.17
 
-### Changed
+### Fixed
 
-- No notable changes.
+- Added `sharp` to devDependencies so DTS type resolution succeeds in CI.
 
 ## 0.0.16
 
-### Changed
-
-- No notable changes.
+No user-facing changes.
 
 ## 0.0.15
 
-### Changed
-
-- No notable changes.
+No user-facing changes.
 
 ## 0.0.14
 
-### Changed
-
-- No notable changes.
+No user-facing changes.
 
 ## 0.0.13
 
@@ -60,19 +45,20 @@
 ## 0.0.11
 
 ### Fixed
+
 - `generatePreviews` forces light/dark before page scripts run (`evaluateOnNewDocument`), emulates `prefers-color-scheme`, and waits for `<html class="dark">` to match — fixes Fumadocs/next-themes sites where post-load toggles were overridden.
 
 ## 0.0.10
 
 ### Changed
-- Packages now published via npm Trusted Publishing (OIDC) with provenance attestation
+
+- Packages now published via npm Trusted Publishing (OIDC) with provenance attestation.
 
 ## 0.0.9
 
 ### Changed
-- `skills install` now fetches from a remote manifest instead of bundled data
 
-# @olwiba/dx Changelog
+- `skills install` now fetches from a remote manifest instead of bundled data.
 
 ## 0.0.8
 
@@ -111,10 +97,14 @@
 
 ## 0.0.2
 
-- `createTsupBannerHook` - returns an `onSuccess` function for tsup configs; shows the banner once on first successful build.
+### Added
+
+- `createTsupBannerHook` — returns an `onSuccess` function for tsup configs; shows the banner once on first successful build.
 
 ## 0.0.1
 
-- Initial release
-- `createDevBannerPlugin` - Vite plugin that prints a coloured ASCII art banner on dev server start.
-- `printBanner` - standalone banner printer for use outside Vite.
+### Added
+
+- Initial release.
+- `createDevBannerPlugin` — Vite plugin that prints a coloured ASCII art banner on dev server start.
+- `printBanner` — standalone banner printer for use outside Vite.
