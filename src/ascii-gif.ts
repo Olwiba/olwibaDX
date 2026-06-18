@@ -21,6 +21,7 @@ interface RGB {
 export interface GenerateAsciiGifOptions {
   text: string
   accent?: string
+  accents?: Array<{ text: string; color: string }>
   font?: AsciiFontName | string
   outputPath: string
   color?: string
@@ -47,6 +48,20 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
   const layout = composeAsciiText(font, options.text)
   const bounds = getLayoutBounds(layout)
   const accentColumns = getAsciiAccentColumns(font, options.text, options.accent ?? "")
+  // Build colAccentMap: col → accent index (0-based). Multi-accent overrides single.
+  let colAccentMap: Map<number, number>
+  let accentColorList: string[]
+  if (options.accents && options.accents.length > 0) {
+    colAccentMap = new Map()
+    for (let i = 0; i < options.accents.length; i++) {
+      const cols = getAsciiAccentColumns(font, options.text, options.accents[i].text)
+      for (const col of cols) colAccentMap.set(col, i)
+    }
+    accentColorList = options.accents.map((a) => a.color)
+  } else {
+    colAccentMap = new Map([...accentColumns].map((col) => [col, 0]))
+    accentColorList = [options.accentColor ?? options.color ?? "#38bdf8"]
+  }
   const width = Math.ceil(bounds.cols * ASCII_CHAR_WIDTH * scale) + padding * 2
   const height = bounds.rows * ASCII_CHAR_HEIGHT * scale + padding * 2
   const frameCount = Math.max(1, Math.round(fps * duration))
@@ -92,11 +107,11 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
     return
   }
 
-  const palette = createPalette({
+  const palette = createMultiAccentPalette({
     backgroundColor: options.backgroundColor ?? "#0a0a0a",
     blendColor: options.blendColor ?? options.backgroundColor ?? "#0a0a0a",
     color: options.color ?? "#e5e5e5",
-    accentColor: options.accentColor ?? options.color ?? "#38bdf8",
+    accentColors: accentColorList,
     levels,
     transparent: options.transparent ?? false,
   })
@@ -105,7 +120,7 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
     frames.push(
       renderIndexedAsciiFrame({
         layout,
-        accentColumns,
+        colAccentMap,
         phase: frame / frameCount,
         width,
         height,
@@ -132,7 +147,7 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
 
 interface RenderIndexedFrameOptions {
   layout: AsciiTextLayout
-  accentColumns: ReadonlySet<number>
+  colAccentMap: ReadonlyMap<number, number>
   phase: number
   width: number
   height: number
@@ -157,7 +172,8 @@ function renderIndexedAsciiFrame(options: RenderIndexedFrameOptions): Uint8Array
   for (const cell of options.layout.cells) {
     const intensity = getAsciiCellIntensity(cell, { phase: options.phase })
     const level = Math.max(0, Math.min(options.levels - 1, Math.round(intensity * (options.levels - 1))))
-    const offset = options.accentColumns.has(cell.col) ? 1 + options.levels : 1
+    const accentIdx = options.colAccentMap.get(cell.col)
+    const offset = accentIdx !== undefined ? 1 + (accentIdx + 1) * options.levels : 1
     const colorIndex = offset + level
     const x0 = options.padding + Math.round((cell.col - options.bounds.minCol) * ASCII_CHAR_WIDTH * options.scale)
     const y0 = options.padding + (cell.row - options.bounds.minRow) * charHeight
@@ -268,30 +284,34 @@ function resolveFont(font: AsciiFontName | string): string {
   return readFileSync(font, "utf-8")
 }
 
-function createPalette(options: {
+function createMultiAccentPalette(options: {
   backgroundColor: string
   blendColor: string
   color: string
-  accentColor: string
+  accentColors: string[]
   levels: number
   transparent: boolean
 }) {
   const bg = parseColor(options.backgroundColor)
   const blend = parseColor(options.blendColor)
   const base = parseColor(options.color)
-  const accent = parseColor(options.accentColor)
   const table: number[] = [bg.r, bg.g, bg.b]
 
+  // Text ramp (indices 1..levels)
   for (let level = 0; level < options.levels; level++) {
     const alpha = level / (options.levels - 1)
     const mixed = mix(blend, base, alpha)
     table.push(mixed.r, mixed.g, mixed.b)
   }
 
-  for (let level = 0; level < options.levels; level++) {
-    const alpha = level / (options.levels - 1)
-    const mixed = mix(blend, accent, alpha)
-    table.push(mixed.r, mixed.g, mixed.b)
+  // One ramp per accent color (indices 1+levels, 1+2*levels, ...)
+  for (const accentHex of options.accentColors) {
+    const accent = parseColor(accentHex)
+    for (let level = 0; level < options.levels; level++) {
+      const alpha = level / (options.levels - 1)
+      const mixed = mix(blend, accent, alpha)
+      table.push(mixed.r, mixed.g, mixed.b)
+    }
   }
 
   while (table.length < 256 * 3) table.push(0, 0, 0)
