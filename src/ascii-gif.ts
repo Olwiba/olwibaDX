@@ -8,6 +8,7 @@ import {
   getAsciiAccentColumns,
   getAsciiCellIntensity,
   parseFigletFont,
+  type AsciiCell,
   type AsciiFontName,
   type AsciiTextLayout,
 } from "./ascii/index"
@@ -21,7 +22,7 @@ interface RGB {
 export interface GenerateAsciiGifOptions {
   text: string
   accent?: string
-  accents?: Array<{ text: string; color: string }>
+  accents?: Array<{ text: string; color: string; sparkle?: boolean }>
   font?: AsciiFontName | string
   outputPath: string
   color?: string
@@ -51,16 +52,20 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
   // Build colAccentMap: col → accent index (0-based). Multi-accent overrides single.
   let colAccentMap: Map<number, number>
   let accentColorList: string[]
+  let sparklingAccents: Set<number>
   if (options.accents && options.accents.length > 0) {
     colAccentMap = new Map()
+    sparklingAccents = new Set()
     for (let i = 0; i < options.accents.length; i++) {
       const cols = getAsciiAccentColumns(font, options.text, options.accents[i].text)
       for (const col of cols) colAccentMap.set(col, i)
+      if (options.accents[i].sparkle) sparklingAccents.add(i)
     }
     accentColorList = options.accents.map((a) => a.color)
   } else {
     colAccentMap = new Map([...accentColumns].map((col) => [col, 0]))
     accentColorList = [options.accentColor ?? options.color ?? "#38bdf8"]
+    sparklingAccents = new Set()
   }
   const width = Math.ceil(bounds.cols * ASCII_CHAR_WIDTH * scale) + padding * 2
   const height = bounds.rows * ASCII_CHAR_HEIGHT * scale + padding * 2
@@ -121,6 +126,7 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
       renderIndexedAsciiFrame({
         layout,
         colAccentMap,
+        sparklingAccents,
         phase: frame / frameCount,
         width,
         height,
@@ -148,6 +154,7 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
 interface RenderIndexedFrameOptions {
   layout: AsciiTextLayout
   colAccentMap: ReadonlyMap<number, number>
+  sparklingAccents: ReadonlySet<number>
   phase: number
   width: number
   height: number
@@ -171,7 +178,10 @@ function renderIndexedAsciiFrame(options: RenderIndexedFrameOptions): Uint8Array
 
   for (const cell of options.layout.cells) {
     const accentIdx = options.colAccentMap.get(cell.col)
-    const intensity = getAsciiCellIntensity(cell, { phase: options.phase })
+    const isGlitter = accentIdx !== undefined && options.sparklingAccents.has(accentIdx) && cell.ch === "█"
+    const intensity = isGlitter
+      ? getGlitterIntensity(cell, options.phase * Math.PI * 2)
+      : getAsciiCellIntensity(cell, { phase: options.phase })
     const level = Math.max(0, Math.min(options.levels - 1, Math.round(intensity * (options.levels - 1))))
     const offset = accentIdx !== undefined ? 1 + (accentIdx + 1) * options.levels : 1
     const colorIndex = offset + level
@@ -228,6 +238,14 @@ function renderIndexedAsciiFrameWithRowColors(options: RenderWithRowColorsOption
   }
 
   return pixels
+}
+
+function getGlitterIntensity(cell: AsciiCell, loop: number): number {
+  const seed = (cell.col * 7.13 + cell.row * 13.37) % (Math.PI * 2)
+  const glitter = (Math.sin(loop * 3.5 + seed) + 1) / 2
+  const flow = Math.sin(cell.col * 0.08 + loop) * 0.055 + Math.sin(cell.row * 0.22 - loop * 0.75) * 0.04
+  const sparkBoost = Math.pow(glitter, 3) * 0.42
+  return Math.max(0.55, Math.min(1, 0.68 + flow + sparkBoost))
 }
 
 function createRowColorPalette(options: {
