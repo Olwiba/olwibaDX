@@ -8,7 +8,6 @@ import {
   getAsciiAccentColumns,
   getAsciiCellIntensity,
   parseFigletFont,
-  type AsciiCell,
   type AsciiFontName,
   type AsciiTextLayout,
 } from "./ascii/index"
@@ -22,7 +21,7 @@ interface RGB {
 export interface GenerateAsciiGifOptions {
   text: string
   accent?: string
-  accents?: Array<{ text: string; color: string; sparkle?: boolean }>
+  accents?: Array<{ text: string; color: string }>
   font?: AsciiFontName | string
   outputPath: string
   color?: string
@@ -52,20 +51,16 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
   // Build colAccentMap: col → accent index (0-based). Multi-accent overrides single.
   let colAccentMap: Map<number, number>
   let accentColorList: string[]
-  let sparklingAccents: Set<number>
   if (options.accents && options.accents.length > 0) {
     colAccentMap = new Map()
-    sparklingAccents = new Set()
     for (let i = 0; i < options.accents.length; i++) {
       const cols = getAsciiAccentColumns(font, options.text, options.accents[i].text)
       for (const col of cols) colAccentMap.set(col, i)
-      if (options.accents[i].sparkle) sparklingAccents.add(i)
     }
     accentColorList = options.accents.map((a) => a.color)
   } else {
     colAccentMap = new Map([...accentColumns].map((col) => [col, 0]))
     accentColorList = [options.accentColor ?? options.color ?? "#38bdf8"]
-    sparklingAccents = new Set()
   }
   const width = Math.ceil(bounds.cols * ASCII_CHAR_WIDTH * scale) + padding * 2
   const height = bounds.rows * ASCII_CHAR_HEIGHT * scale + padding * 2
@@ -121,24 +116,11 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
     transparent: options.transparent ?? false,
   })
 
-  const sparkleParticles = generateSparkleParticles({
-    layout,
-    colAccentMap,
-    sparklingAccents,
-    bounds,
-    padding,
-    scale,
-    width,
-    height,
-  })
-
   for (let frame = 0; frame < frameCount; frame++) {
     frames.push(
       renderIndexedAsciiFrame({
         layout,
         colAccentMap,
-        sparklingAccents,
-        sparkleParticles,
         phase: frame / frameCount,
         width,
         height,
@@ -166,8 +148,6 @@ export async function generateAsciiGif(options: GenerateAsciiGifOptions): Promis
 interface RenderIndexedFrameOptions {
   layout: AsciiTextLayout
   colAccentMap: ReadonlyMap<number, number>
-  sparklingAccents: ReadonlySet<number>
-  sparkleParticles: SparkleParticle[]
   phase: number
   width: number
   height: number
@@ -191,10 +171,7 @@ function renderIndexedAsciiFrame(options: RenderIndexedFrameOptions): Uint8Array
 
   for (const cell of options.layout.cells) {
     const accentIdx = options.colAccentMap.get(cell.col)
-    const isGlitter = accentIdx !== undefined && options.sparklingAccents.has(accentIdx) && cell.ch === "█"
-    const intensity = isGlitter
-      ? getGlitterIntensity(cell, options.phase * Math.PI * 2)
-      : getAsciiCellIntensity(cell, { phase: options.phase })
+    const intensity = getAsciiCellIntensity(cell, { phase: options.phase })
     const level = Math.max(0, Math.min(options.levels - 1, Math.round(intensity * (options.levels - 1))))
     const offset = accentIdx !== undefined ? 1 + (accentIdx + 1) * options.levels : 1
     const colorIndex = offset + level
@@ -207,33 +184,6 @@ function renderIndexedAsciiFrame(options: RenderIndexedFrameOptions): Uint8Array
       const row = y * options.width
       for (let x = x0; x < x1; x++) {
         pixels[row + x] = colorIndex
-      }
-    }
-  }
-
-  // Draw sparkle particles — white + and * shapes on/around sparkling accents
-  for (const p of options.sparkleParticles) {
-    const wave = Math.sin(p.phase * Math.PI * 2 + options.phase * Math.PI * 2 * p.freq)
-    if (wave < 0.68) continue
-    const brightness = (wave - 0.68) / 0.32
-    const level = Math.max(0, Math.min(options.levels - 1, Math.round(brightness * (options.levels - 1))))
-    const particleColorIdx = 1 + level  // text ramp (white) — contrast against colored letter
-    const pts: [number, number][] = [[p.px, p.py]]
-    if (p.shape === "plus") {
-      // +: 3px arms on cardinal directions
-      for (let d = 1; d <= 3; d++) {
-        pts.push([p.px - d, p.py], [p.px + d, p.py], [p.px, p.py - d], [p.px, p.py + d])
-      }
-    } else {
-      // *: 2px cardinal arms + 1px diagonals
-      for (let d = 1; d <= 2; d++) {
-        pts.push([p.px - d, p.py], [p.px + d, p.py], [p.px, p.py - d], [p.px, p.py + d])
-      }
-      pts.push([p.px - 1, p.py - 1], [p.px + 1, p.py - 1], [p.px - 1, p.py + 1], [p.px + 1, p.py + 1])
-    }
-    for (const [x, y] of pts) {
-      if (x >= 0 && x < options.width && y >= 0 && y < options.height) {
-        pixels[y * options.width + x] = particleColorIdx
       }
     }
   }
@@ -335,114 +285,6 @@ function resolveFont(font: AsciiFontName | string): string {
 }
 
 
-function getGlitterIntensity(cell: AsciiCell, loop: number): number {
-  // Per-cell deterministic phase — each block blinks on its own schedule
-  const seed = (cell.col * 7.13 + cell.row * 13.37) % (Math.PI * 2)
-  const glitter = (Math.sin(loop * 3.5 + seed) + 1) / 2  // 0..1, uncorrelated across cells
-  // Keep the base flow so the letter still reads as a coherent shape
-  const flow = Math.sin(cell.col * 0.08 + loop) * 0.055 + Math.sin(cell.row * 0.22 - loop * 0.75) * 0.04
-  // Glitter fires only near peaks — power curve concentrates the bright flashes
-  const sparkBoost = Math.pow(glitter, 3) * 0.42
-  return Math.max(0.55, Math.min(1, 0.68 + flow + sparkBoost))
-}
-
-interface SparkleParticle {
-  px: number
-  py: number
-  phase: number
-  freq: number
-  accentIdx: number
-  shape: "plus" | "star"
-}
-
-function generateSparkleParticles(options: {
-  layout: AsciiTextLayout
-  colAccentMap: ReadonlyMap<number, number>
-  sparklingAccents: ReadonlySet<number>
-  bounds: LayoutBounds
-  padding: number
-  scale: number
-  width: number
-  height: number
-}): SparkleParticle[] {
-  const charWidth = Math.round(ASCII_CHAR_WIDTH * options.scale)
-  const charHeight = Math.round(ASCII_CHAR_HEIGHT * options.scale)
-  const particles: SparkleParticle[] = []
-
-  // Collect foreground (█) cells per sparkling accent for inside placement
-  const fgCells = new Map<number, Array<{ col: number; row: number }>>()
-  for (const cell of options.layout.cells) {
-    if (cell.ch !== "█") continue
-    const accentIdx = options.colAccentMap.get(cell.col)
-    if (accentIdx === undefined || !options.sparklingAccents.has(accentIdx)) continue
-    const arr = fgCells.get(accentIdx) ?? []
-    arr.push({ col: cell.col, row: cell.row })
-    fgCells.set(accentIdx, arr)
-  }
-
-  // Compute pixel bounding box per sparkling accent for outside placement
-  const accentBoxes = new Map<number, { minX: number; maxX: number; minY: number; maxY: number }>()
-  for (const cell of options.layout.cells) {
-    const accentIdx = options.colAccentMap.get(cell.col)
-    if (accentIdx === undefined || !options.sparklingAccents.has(accentIdx)) continue
-    const x0 = options.padding + Math.round((cell.col - options.bounds.minCol) * ASCII_CHAR_WIDTH * options.scale)
-    const y0 = options.padding + (cell.row - options.bounds.minRow) * charHeight
-    const b = accentBoxes.get(accentIdx)
-    if (b) {
-      b.minX = Math.min(b.minX, x0)
-      b.maxX = Math.max(b.maxX, x0 + charWidth)
-      b.minY = Math.min(b.minY, y0)
-      b.maxY = Math.max(b.maxY, y0 + charHeight)
-    } else {
-      accentBoxes.set(accentIdx, { minX: x0, maxX: x0 + charWidth, minY: y0, maxY: y0 + charHeight })
-    }
-  }
-
-  const PHI = 0.6180339887  // golden ratio — maximally equidistributed phases
-
-  for (const [accentIdx, box] of accentBoxes) {
-    const cells = fgCells.get(accentIdx) ?? []
-    const insideCount = Math.min(20, cells.length)
-
-    // Inside: golden-ratio cell selection + phase spread + varied frequencies
-    for (let i = 0; i < insideCount; i++) {
-      const cell = cells[Math.floor((i * PHI % 1) * cells.length)]
-      if (!cell) continue
-      const px = options.padding + Math.round((cell.col - options.bounds.minCol) * ASCII_CHAR_WIDTH * options.scale) + Math.floor(charWidth / 2)
-      const py = options.padding + (cell.row - options.bounds.minRow) * charHeight + Math.floor(charHeight / 2)
-      const phase = (i * PHI) % 1
-      // Varied freq — prime-ish spacing so particles never sync up within the loop
-      const freq = 2.3 + (i * 0.41 % 2.8)
-      const shape: "plus" | "star" = i % 3 === 1 ? "plus" : "star"
-      particles.push({ px, py, phase, freq, accentIdx, shape })
-    }
-
-    // Outside: 8 particles around the bounding box, also varied freq + golden-ratio phase
-    const cx = (box.minX + box.maxX) / 2
-    const cy = (box.minY + box.maxY) / 2
-    const hw = (box.maxX - box.minX) / 2 + charWidth * 0.5
-    const hh = (box.maxY - box.minY) / 2 + charHeight * 0.5
-    const outside = [
-      { ox: 0,        oy: -hh - 5 },
-      { ox:  hw * 0.5, oy: -hh - 4 },
-      { ox: -hw * 0.5, oy: -hh - 4 },
-      { ox:  hw + 5,   oy: -hh * 0.3 },
-      { ox:  hw + 5,   oy:  hh * 0.4 },
-      { ox: -hw - 5,   oy:  hh * 0.1 },
-      { ox:  hw * 0.3, oy:  hh + 5 },
-      { ox: -hw * 0.4, oy:  hh + 4 },
-    ]
-    outside.forEach(({ ox, oy }, i) => {
-      const globalI = insideCount + i
-      const phase = (globalI * PHI) % 1
-      const freq = 2.3 + (globalI * 0.41 % 2.8)
-      const shape: "plus" | "star" = i % 2 === 0 ? "plus" : "star"
-      particles.push({ px: Math.round(cx + ox), py: Math.round(cy + oy), phase, freq, accentIdx, shape })
-    })
-  }
-
-  return particles
-}
 
 function createMultiAccentPalette(options: {
   backgroundColor: string
