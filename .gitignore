@@ -6,3 +6,4 @@ dist/
 .npmrc
 artifacts/
 *.tgz
+*.omp.json

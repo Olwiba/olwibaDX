@@ -28,7 +28,7 @@ type DevPlugin = {
 }
 
 
-function hexToAnsi24(hex: string) {
+export function hexToAnsi24(hex: string) {
   const normalized = hex.trim().replace(/^#/, "")
   if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
     return null

@@ -1,4 +1,4 @@
-export { createDevBannerPlugin, createTsupBannerHook, printBanner } from "./dev-banner"
+export { createDevBannerPlugin, createTsupBannerHook, printBanner, hexToAnsi24 } from "./dev-banner"
 export type { BannerSegment } from "./dev-banner"
 export {
   createProjectDevBannerPlugin,
