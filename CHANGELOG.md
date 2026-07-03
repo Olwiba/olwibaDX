@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.19
+
+### Added
+
+- `findFreePort` and `resolveDevPort` helpers — probe for the first free port from a preferred base so dev servers fall back cleanly when the port is taken.
+
 ## 0.0.18
 
 No user-facing changes.

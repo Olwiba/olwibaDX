@@ -1,4 +1,5 @@
 export { createDevBannerPlugin, createTsupBannerHook, printBanner, hexToAnsi24 } from "./dev-banner"
+export { findFreePort, resolveDevPort } from "./find-free-port"
 export type { BannerSegment } from "./dev-banner"
 export {
   createProjectDevBannerPlugin,
