@@ -5,3 +5,5 @@
 # Supply-chain attack mitigation — third-party packages blocked for 7 days after publish.
 # @olwiba/* packages are first-party — bypass with: bun add <pkg>@<ver> --minimum-release-age 0
 minimumReleaseAge = 604800
+# First-party @olwiba/* packages are exempt — released and consumed same-day by design (bun has no scope-wildcard support here, so names are explicit).
+minimumReleaseAgeExcludes = ["@olwiba/cn", "@olwiba/docs", "@olwiba/dx", "@olwiba/genesis-start", "@olwiba/render", "@olwiba/sync", "@olwiba/ui", "@olwiba/ui-pro"]
