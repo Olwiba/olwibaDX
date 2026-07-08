@@ -1,6 +1,7 @@
 const RESET = "\x1b[0m"
 const DEFAULT_HEX = "#22D3EE"
 const WHITE_HEX = "#ffffff"
+const shownBannerKeys = new Set<string>()
 
 export type BannerSegment = {
   text: string
@@ -195,9 +196,12 @@ export function createTsupBannerHook(
 ): () => Promise<void> {
   let shown = false
   const normalized = normalizeSegments(project)
+  const bannerKey = JSON.stringify(normalized)
   return async () => {
     if (shown) return
+    if (shownBannerKeys.has(bannerKey)) return
     shown = true
+    shownBannerKeys.add(bannerKey)
     await printBanner(normalized)
   }
 }
