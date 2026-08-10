@@ -98,11 +98,11 @@ jobs:
       - name: Notify Discord
         if: always()
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          OPS_WEBHOOK_DEPLOYS: ${{ secrets.OPS_WEBHOOK_DEPLOYS }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
-            echo "DISCORD_WEBHOOK_URL is not configured. Skipping notification."
+          if [ -z "$OPS_WEBHOOK_DEPLOYS" ]; then
+            echo "OPS_WEBHOOK_DEPLOYS is not configured. Skipping notification."
             exit 0
           fi
 
@@ -149,4 +149,4 @@ jobs:
           curl -sS \
             -H "Content-Type: application/json" \
             -d @discord-payload.json \
-            "$DISCORD_WEBHOOK_URL"
+            "$OPS_WEBHOOK_DEPLOYS"
