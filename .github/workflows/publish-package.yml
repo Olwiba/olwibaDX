@@ -95,23 +95,47 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # The `releases` category of the ops notification system. Separate from
+      # `deploys` because the audience differs: a deploy concerns whoever
+      # operates one product, a package release concerns everyone building on
+      # the ecosystem. Severity, colours and footer match what notifyOps sends
+      # at runtime, so a release and a deploy read as the same kind of thing.
       - name: Notify Discord
         if: always()
         env:
-          OPS_WEBHOOK_DEPLOYS: ${{ secrets.OPS_WEBHOOK_DEPLOYS }}
+          OPS_WEBHOOK_RELEASES: ${{ secrets.OPS_WEBHOOK_RELEASES }}
+          # Same knob as the runtime: set the repository variable to `error` to
+          # hear only about failed publishes.
+          OPS_MIN_SEVERITY: ${{ vars.OPS_MIN_SEVERITY || 'info' }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          if [ -z "$OPS_WEBHOOK_DEPLOYS" ]; then
-            echo "OPS_WEBHOOK_DEPLOYS is not configured. Skipping notification."
+          if [ -z "$OPS_WEBHOOK_RELEASES" ]; then
+            echo "OPS_WEBHOOK_RELEASES is not configured. Skipping notification."
             exit 0
           fi
 
-          STATUS_TEXT="succeeded"
-          COLOR=5763719
-
-          if [ "$JOB_STATUS" != "success" ]; then
+          # Colours are the same values src/domain/ops/format.ts uses.
+          if [ "$JOB_STATUS" = "success" ]; then
+            SEVERITY="info"
+            STATUS_TEXT="succeeded"
+            COLOR=5793266
+          else
+            SEVERITY="error"
             STATUS_TEXT="failed"
             COLOR=15548997
+          fi
+
+          rank() {
+            case "$1" in
+              error) echo 2 ;;
+              warn) echo 1 ;;
+              *) echo 0 ;;
+            esac
+          }
+
+          if [ "$(rank "$SEVERITY")" -lt "$(rank "$OPS_MIN_SEVERITY")" ]; then
+            echo "release $STATUS_TEXT - below OPS_MIN_SEVERITY=$OPS_MIN_SEVERITY, not reporting."
+            exit 0
           fi
 
           VERSION="${PKG_VERSION:-unknown}"
@@ -121,32 +145,37 @@ jobs:
 
           jq -n \
             --arg repo "$GITHUB_REPOSITORY" \
-            --arg workflow "$GITHUB_WORKFLOW" \
             --arg version "$VERSION" \
-            --arg ref "$REF_NAME" \
             --arg status "$STATUS_TEXT" \
             --arg actor "$GITHUB_ACTOR" \
             --arg url "$RUN_URL" \
             --arg sha "$SHORT_SHA" \
+            --arg footer "$REF_NAME · ci · releases" \
+            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --argjson color "$COLOR" \
             '{
               embeds: [
                 {
                   title: ($repo + " release " + $status),
+                  description: ("**" + $repo + "** v" + $version),
                   color: $color,
                   url: $url,
                   fields: [
                     { name: "Version", value: $version, inline: true },
-                    { name: "Ref", value: $ref, inline: true },
                     { name: "Actor", value: $actor, inline: true },
-                    { name: "Commit", value: $sha, inline: true },
-                    { name: "Workflow", value: $workflow, inline: false }
-                  ]
+                    { name: "Commit", value: $sha, inline: true }
+                  ],
+                  footer: { text: $footer },
+                  timestamp: $ts
                 }
               ]
             }' > discord-payload.json
 
+          # Deliberately not --fail-with-body, unlike the CI workflow. The
+          # package has already published by this point, and marking a
+          # successful release red because Discord returned a 4xx would be
+          # reporting the wrong failure.
           curl -sS \
             -H "Content-Type: application/json" \
             -d @discord-payload.json \
-            "$OPS_WEBHOOK_DEPLOYS"
+            "$OPS_WEBHOOK_RELEASES"
