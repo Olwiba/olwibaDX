@@ -18,7 +18,7 @@ if (command === "skills" && subcommand === "install") {
     "Usage:\n" +
       "  dx skills install [--source <url>] [--target claude|amp] [--all] [--name a,b,c]\n" +
       "  dx ascii-gif --text <text> --out <file.gif>\n" +
-      "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>]\n",
+      "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n",
   )
 }
 
@@ -222,10 +222,11 @@ async function runGenerateAssets() {
   const icon = flags.icon
   const color = flags.color
   const outputDir = flags.out ?? flags.output ?? "public"
+  const ogComponent = flags["og-component"]
 
   if (!name || !icon || !color) {
     process.stderr.write(
-      "Usage: dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>]\n",
+      "Usage: dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n",
     )
     process.exitCode = 1
     return
@@ -233,7 +234,7 @@ async function runGenerateAssets() {
 
   process.stdout.write(`Generating assets for "${name}"…\n`)
   try {
-    const result = await generateAssets({ name, icon, color, outputDir })
+    const result = await generateAssets({ name, icon, color, outputDir, ogComponent })
     process.stdout.write(`Generated ${result.files.length} files in ${outputDir}/\n`)
     for (const f of result.files) process.stdout.write(`  ${f}\n`)
   } catch (err) {
