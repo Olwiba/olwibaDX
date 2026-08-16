@@ -8,6 +8,12 @@ export interface GenerateAssetsConfig {
   icon: string
   color: string
   outputDir: string
+  /**
+   * Optional path to a rendered component (SVG, PNG, JPG, or WebP) placed bottom-middle
+   * in og-image.png. When set, the OG image uses a solid `color` background with a smaller
+   * `icon` above the component instead of the default large-logo layout.
+   */
+  ogComponent?: string
 }
 
 export interface GenerateAssetsResult {
@@ -67,6 +73,15 @@ function getSvgInner(svgPath: string): { inner: string; viewBox: number } {
     .replace(/<\/svg>/, "")
     .trim()
   return { inner, viewBox }
+}
+
+function resolveIcon(icon: string): { mode: IconMode; inner: string; viewBox: number } {
+  const mode = detectIconMode(icon)
+  if (mode === "svg") {
+    const { inner, viewBox } = getSvgInner(icon)
+    return { mode, inner, viewBox }
+  }
+  return { mode, inner: getLucideInner(icon), viewBox: 24 }
 }
 
 function buildIconSvgLucide(inner: string, color: string, size: number): string {
@@ -131,6 +146,52 @@ function buildOgSvgCustom(inner: string, viewBox: number, color: string): string
 </svg>`
 }
 
+/**
+ * OG base image used when `ogComponent` is set: solid brand-`color` background with a
+ * small logo mark + name wordmark centered as a group near the top. The component itself
+ * is composited on top afterward, in the bottom-middle.
+ */
+function buildOgSvgWithSmallLogo(
+  mode: IconMode,
+  inner: string,
+  viewBox: number,
+  color: string,
+  name: string,
+): string {
+  const markSize = 130
+  const gap = 28
+  const fontSize = 56
+  const groupY = 72
+  const scale = markSize / viewBox
+
+  // No text-measurement API in raw SVG generation, so estimate wordmark width from
+  // character count to center the mark+text group as a whole.
+  const textWidth = Math.round(name.length * fontSize * 0.58)
+  const totalWidth = markSize + gap + textWidth
+  const groupX = Math.round((1200 - totalWidth) / 2)
+
+  const logoMarkup =
+    mode === "lucide"
+      ? (() => {
+          const sw = (2.5 / scale).toFixed(4)
+          return `<g transform="translate(${groupX} ${groupY}) scale(${scale})" stroke="white" fill="none" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">
+    ${inner}
+  </g>`
+        })()
+      : `<g transform="translate(${groupX} ${groupY}) scale(${scale})">
+    ${inner}
+  </g>`
+
+  const textX = groupX + markSize + gap
+  const textY = groupY + markSize / 2
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
+  <rect width="1200" height="630" fill="${color}"/>
+  ${logoMarkup}
+  <text x="${textX}" y="${textY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="white" dominant-baseline="middle" letter-spacing="-1">${escapeXml(name)}</text>
+</svg>`
+}
+
 const FAVICON_SIZES = [16, 32, 48, 64, 192, 512] as const
 
 const NAMED_ICONS: Array<[string, number]> = [
@@ -142,7 +203,7 @@ const NAMED_ICONS: Array<[string, number]> = [
 export async function generateAssets(
   config: GenerateAssetsConfig,
 ): Promise<GenerateAssetsResult> {
-  const { name, icon, color, outputDir } = config
+  const { name, icon, color, outputDir, ogComponent } = config
 
   let sharpFn: typeof import("sharp")
   try {
@@ -158,19 +219,9 @@ export async function generateAssets(
   const faviconDir = join(outputDir, "favicon")
   mkdirSync(faviconDir, { recursive: true })
 
-  const mode = detectIconMode(icon)
   const written: string[] = []
 
-  let inner: string
-  let viewBox = 24
-
-  if (mode === "svg") {
-    const parsed = getSvgInner(icon)
-    inner = parsed.inner
-    viewBox = parsed.viewBox
-  } else {
-    inner = getLucideInner(icon)
-  }
+  const { mode, inner, viewBox } = resolveIcon(icon)
 
   const buildIcon = (size: number) =>
     mode === "svg"
@@ -191,12 +242,39 @@ export async function generateAssets(
     written.push(dest)
   }
 
-  const ogSvg =
-    mode === "svg"
+  const ogSvg = ogComponent
+    ? buildOgSvgWithSmallLogo(mode, inner, viewBox, color, name)
+    : mode === "svg"
       ? buildOgSvgCustom(inner, viewBox, color)
       : buildOgSvgLucide(inner, name, color)
 
-  const ogPng = await sharpFn(Buffer.from(ogSvg)).png().toBuffer()
+  let ogPng = await sharpFn(Buffer.from(ogSvg)).png().toBuffer()
+
+  if (ogComponent) {
+    const maxWidth = 880
+    const maxHeight = 300
+    const marginBottom = 55
+
+    const componentBuf = readFileSync(resolve(process.cwd(), ogComponent))
+    const resized = await sharpFn(componentBuf, { density: 300 })
+      .resize({ width: maxWidth, height: maxHeight, fit: "inside" })
+      .png()
+      .toBuffer()
+    const { width: compWidth = maxWidth, height: compHeight = maxHeight } =
+      await sharpFn(resized).metadata()
+
+    ogPng = await sharpFn(ogPng)
+      .composite([
+        {
+          input: resized,
+          left: Math.round((1200 - compWidth) / 2),
+          top: 630 - marginBottom - compHeight,
+        },
+      ])
+      .png()
+      .toBuffer()
+  }
+
   const ogDest = join(outputDir, "og-image.png")
   writeFileSync(ogDest, ogPng)
   written.push(ogDest)

@@ -81,6 +81,36 @@ bunx @olwiba/dx ascii-gif \
   --out ./public/olwibaDX.gif
 ```
 
+### Asset Generator
+
+Generate favicons, app icons, manifest files, robots.txt, and an `og-image.png` from a Lucide icon or SVG mark.
+
+```bash
+bunx @olwiba/dx generate-assets \
+  --name "myApp" \
+  --icon ./public/logo.svg \
+  --color "#0d9488" \
+  --og-component ./public/search-bar.svg \
+  --out ./public
+```
+
+`--og-component` is optional and only affects the social image: it renders the given SVG/PNG/JPG/WebP
+component bottom-middle on a solid `--color` background, with a small `--icon` + `--name` wordmark
+grouped above it. Without it, `og-image.png` uses the default large-logo layout. Favicons and app
+icons always use `--icon`.
+
+```ts
+import { generateAssets } from "@olwiba/dx/generate-assets";
+
+await generateAssets({
+  name: "myApp",
+  icon: "./public/logo.svg",
+  color: "#0d9488",
+  outputDir: "./public",
+  ogComponent: "./public/search-bar.svg",
+});
+```
+
 ### Preview Generator
 
 Puppeteer-based screenshot tool used to pre-render the isometric preview tiles on docs sites.
