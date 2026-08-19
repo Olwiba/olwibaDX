@@ -2,6 +2,11 @@
 
 
 
+
+## 0.0.22
+
+No user-facing changes.
+
 ## 0.0.21
 
 ### Changed

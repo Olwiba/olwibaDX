@@ -23,25 +23,28 @@ export async function findFreePort(start: number, attempts = 20): Promise<number
 }
 
 /**
- * Resolve the dev server port, or fail.
+ * Resolve the dev server port for a preferred base port, falling back to the
+ * next free one and saying so loudly.
  *
- * Deliberately does **not** fall back to the next free port. Silently moving to
- * 3001 looks like it worked and then breaks something unrelated several minutes
- * later: `BETTER_AUTH_TRUSTED_ORIGINS` pins an origin, so the app boots fine and
- * every sign-in fails with "Invalid origin" — a message that points at auth
- * config rather than at the port that actually moved.
+ * Falling back is the right default — a second app should start rather than
+ * refuse — but the move used to be near-silent, and the port is not the thing
+ * that breaks. What breaks is anything holding an absolute localhost URL:
+ * sign-in fails "Invalid origin" if the origin is pinned, and magic links point
+ * at the port you are no longer on.
  *
- * Running a second app at the same time is still supported, but has to be said
- * out loud: `PORT=3001 bun run dev`.
+ * So callers are expected to do two things, and the log says so:
+ *   - trust localhost on any port in dev (`http://localhost:*`)
+ *   - derive `BETTER_AUTH_URL` from the port this returns, not from `.env`
  */
-export async function resolveDevPort(preferred: number): Promise<number> {
-  if (await isFree(preferred)) return preferred
-
-  throw new Error(
-    `Port ${preferred} is already in use.\n\n` +
-      `  Free it, or start this app on another port explicitly:\n` +
-      `    PORT=${preferred + 1} bun run dev\n\n` +
-      `  If you pick another port, add its origin to BETTER_AUTH_TRUSTED_ORIGINS\n` +
-      `  or sign-in will fail with "Invalid origin".`,
-  )
+export async function resolveDevPort(preferred: number, attempts = 20): Promise<number> {
+  const port = await findFreePort(preferred, attempts)
+  if (port !== preferred) {
+    console.warn(
+      `\n  ⚠ Port ${preferred} is in use — this dev server is on ${port} instead.\n` +
+        `    Absolute URLs built from .env still say ${preferred}. Anything that\n` +
+        `    emails you a link (magic link, email verification) will point at the\n` +
+        `    wrong port unless BETTER_AUTH_URL is derived from ${port}.\n`,
+    )
+  }
+  return port
 }
