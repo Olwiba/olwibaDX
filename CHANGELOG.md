@@ -1,6 +1,18 @@
 # Changelog
 
 
+
+## 0.0.21
+
+### Changed
+
+- **Breaking:** `resolveDevPort` no longer falls back to the next free port — it throws when the preferred port is taken. Silently moving to 3001 booted fine and then failed every sign-in with "Invalid origin", because `BETTER_AUTH_TRUSTED_ORIGINS` pins the origin. The error names the port and shows the explicit opt-in (`PORT=3001 bun run dev`) plus the trusted-origins caveat. Running a second app concurrently still works, it just has to be asked for.
+- **Breaking:** `resolveDevPort` dropped its `attempts` parameter, which no longer had meaning without the fallback scan. `findFreePort(start, attempts)` is unchanged for callers that do want a scan.
+
+### Fixed
+
+- `createTsupBannerHook` dedupes across hook instances, so the same banner prints once per build instead of once per tsup entry.
+
 ## 0.0.20
 
 ### Changed
