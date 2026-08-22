@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.23
+
+### Added
+
+- `generateAssets` takes `ogComponent` — a path to a rendered SVG/PNG/JPG/WebP composited into `og-image.png`. With it set, the OG image switches from the large-logo layout to a solid brand-colour field with a small mark and wordmark at the top and the component filling the space beneath. `dx generate-assets` exposes it as `--og-component <svg-or-image-path>`
+- An ambient glow behind the component, so it sits on the brand field rather than on top of it. White at low opacity rather than a tint, so it reads as light on any brand colour instead of becoming a second colour competing with it
+
+### Notes
+
+- The component scales to width and is allowed to run off the bottom edge. A screenshot that fits entirely inside the frame reads as a picture of an app; one that continues past it reads as the app, and the detail stays legible at the size a link preview is actually seen. A component short enough to fit still centres in the space under the header, so a wide strip does not cling to the wordmark with a gulf beneath it
+- `ogComponent` takes an already-rendered image. Nothing here renders React — a component has to be screenshotted or drawn first
+
 
 
 
