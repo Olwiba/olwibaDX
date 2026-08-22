@@ -146,10 +146,44 @@ function buildOgSvgCustom(inner: string, viewBox: number, color: string): string
 </svg>`
 }
 
+const OG_WIDTH = 1200
+const OG_HEIGHT = 630
+
+/**
+ * The wordmark band at the top, and the space left under it for the component.
+ *
+ * Shared by the SVG that draws the header and the compositing that places the
+ * component, so the two cannot disagree about where one ends and the other
+ * begins — the failure mode being a component that creeps up under the logo.
+ */
+const OG_HEADER = {
+  top: 54,
+  markSize: 96,
+  /** Clear space between the wordmark's baseline and the component. */
+  gapBelow: 30,
+} as const
+
+/**
+ * A soft bloom behind the component, so it sits on the brand field rather than
+ * on top of it. White at low opacity rather than a tint, so it reads as light
+ * on any brand colour instead of as a second colour competing with it.
+ */
+function buildOgGlowSvg(box: { left: number; top: number; width: number; height: number }): string {
+  const spread = 40
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_WIDTH}" height="${OG_HEIGHT}">
+  <defs>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="46"/>
+    </filter>
+  </defs>
+  <rect x="${box.left - spread}" y="${box.top - spread}" width="${box.width + spread * 2}" height="${box.height + spread * 2}" rx="48" fill="#ffffff" opacity="0.22" filter="url(#glow)"/>
+</svg>`
+}
+
 /**
  * OG base image used when `ogComponent` is set: solid brand-`color` background with a
  * small logo mark + name wordmark centered as a group near the top. The component itself
- * is composited on top afterward, in the bottom-middle.
+ * is composited on top afterward, filling the space beneath.
  */
 function buildOgSvgWithSmallLogo(
   mode: IconMode,
@@ -158,10 +192,10 @@ function buildOgSvgWithSmallLogo(
   color: string,
   name: string,
 ): string {
-  const markSize = 130
+  const markSize = OG_HEADER.markSize
   const gap = 28
   const fontSize = 56
-  const groupY = 72
+  const groupY = OG_HEADER.top
   const scale = markSize / viewBox
 
   // No text-measurement API in raw SVG generation, so estimate wordmark width from
@@ -185,8 +219,8 @@ function buildOgSvgWithSmallLogo(
   const textX = groupX + markSize + gap
   const textY = groupY + markSize / 2
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
-  <rect width="1200" height="630" fill="${color}"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_WIDTH}" height="${OG_HEIGHT}">
+  <rect width="${OG_WIDTH}" height="${OG_HEIGHT}" fill="${color}"/>
   ${logoMarkup}
   <text x="${textX}" y="${textY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="${fontSize}" font-weight="700" fill="white" dominant-baseline="middle" letter-spacing="-1">${escapeXml(name)}</text>
 </svg>`
@@ -251,25 +285,48 @@ export async function generateAssets(
   let ogPng = await sharpFn(Buffer.from(ogSvg)).png().toBuffer()
 
   if (ogComponent) {
-    const maxWidth = 880
-    const maxHeight = 300
-    const marginBottom = 55
+    // Scaled to width and allowed to run off the bottom edge, rather than
+    // shrunk to fit a box. A screenshot that fits entirely inside the frame
+    // reads as a picture of an app; one that continues past the edge reads as
+    // the app itself, and the detail stays legible at the size a link preview
+    // is actually seen.
+    //
+    // The previous fixed 880x300 box assumed a wide strip — a composer, a
+    // toolbar — and shrank anything squarer to fit its height: a 1.87:1
+    // dashboard landed at 561x300, adrift in the middle of a 1200px canvas.
+    const sideMargin = 72
+    const maxWidth = OG_WIDTH - sideMargin * 2
+    const headerBottom = OG_HEADER.top + OG_HEADER.markSize + OG_HEADER.gapBelow
 
     const componentBuf = readFileSync(resolve(process.cwd(), ogComponent))
     const resized = await sharpFn(componentBuf, { density: 300 })
-      .resize({ width: maxWidth, height: maxHeight, fit: "inside" })
+      .resize({ width: maxWidth, withoutEnlargement: true })
       .png()
       .toBuffer()
-    const { width: compWidth = maxWidth, height: compHeight = maxHeight } =
+    const { width: compWidth = maxWidth, height: compHeight = 0 } =
       await sharpFn(resized).metadata()
+
+    const left = Math.round((OG_WIDTH - compWidth) / 2)
+    // A component short enough to fit sits centred in the space under the
+    // header; a tall one starts there and bleeds off the bottom. Without this
+    // branch a wide strip would cling to the header with a gulf beneath it.
+    const fits = headerBottom + compHeight <= OG_HEIGHT
+    const top = fits
+      ? Math.round(headerBottom + (OG_HEIGHT - headerBottom - compHeight) / 2)
+      : headerBottom
 
     ogPng = await sharpFn(ogPng)
       .composite([
+        // Glow first: it has to sit under the component, and sharp applies
+        // composites in array order.
         {
-          input: resized,
-          left: Math.round((1200 - compWidth) / 2),
-          top: 630 - marginBottom - compHeight,
+          input: Buffer.from(
+            buildOgGlowSvg({ left, top, width: compWidth, height: compHeight }),
+          ),
+          left: 0,
+          top: 0,
         },
+        { input: resized, left, top },
       ])
       .png()
       .toBuffer()
