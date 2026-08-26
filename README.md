@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: light)" srcset="./public/olwibaDX--light.gif" />
-    <source media="(prefers-color-scheme: dark)" srcset="./public/olwibaDX.gif" />
-    <img src="./public/olwibaDX.gif" alt="olwibaDX" style="width: 100%;" />
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/public/olwibaDX--light.gif" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/public/olwibaDX.gif" />
+    <img src="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/public/olwibaDX.gif" alt="olwibaDX" style="width: 100%;" />
   </picture>
 </p>
 
@@ -65,9 +65,9 @@ For tsup, swap `createDevBannerPlugin` for `createTsupBannerHook` and pass it to
 Figlet renderer with a bundled DOS Rebel font. Powers the `<AsciiText>` component in `@olwiba/cn`.
 
 ```ts
-import { renderAscii } from "@olwiba/dx/ascii";
+import { composeAsciiText, getAsciiFont } from "@olwiba/dx/ascii";
 
-const art = renderAscii("hello", { font: "dosrebel" });
+const layout = composeAsciiText(getAsciiFont("dosrebel"), "hello");
 ```
 
 ### ASCII GIF Generator
@@ -116,11 +116,17 @@ await generateAssets({
 Puppeteer-based screenshot tool used to pre-render the isometric preview tiles on docs sites.
 
 ```ts
-import { generatePreviews } from "@olwiba/dx";
+import { generatePreviews } from "@olwiba/dx/generate-previews";
 
 await generatePreviews({
-  url: "http://localhost:3000/preview",
+  baseUrl: "http://localhost:3000/preview",
   outputDir: "./public/previews",
+  components: [
+    { name: "button", urlPath: "/button" },
+    { name: "dialog", urlPath: "/dialog", selector: "[data-preview]" },
+  ],
+  selector: "[data-preview]",
+  themes: ["light", "dark"],
 });
 ```
 
@@ -130,9 +136,9 @@ Opinionated lint rules shared across the ecosystem.
 
 ```ts
 // eslint.config.js
-import olwibaConfig from "@olwiba/dx/eslint";
+import { olwiba } from "@olwiba/dx/eslint";
 
-export default [...olwibaConfig];
+export default await olwiba({ react: true });
 ```
 
 ### Skills
@@ -142,6 +148,35 @@ Installable Claude/Amp skills manifest for working in Olwiba projects.
 ```bash
 bunx @olwiba/dx skills install
 ```
+
+### Worktree Cleanup
+
+Safely removes linked Git worktrees only after their commits have landed in the remote default branch. Dirty worktrees, the current worktree, unmerged commits, and missing paths are preserved and reported.
+
+```bash
+# Current repository
+bunx @olwiba/dx worktree cleanup --dry-run
+
+# Named child repository under ./repos
+bunx @olwiba/dx worktree cleanup my-repo
+
+# Any repository path or non-standard remote
+bunx @olwiba/dx worktree cleanup ../my-repo --remote upstream
+```
+
+The command fetches and prunes the remote first, shows the worktrees it considers safe to remove, and asks for confirmation. Use `--force` to skip confirmation, `--no-fetch` for offline use, or `--repos-root <path>` when resolving a repository by name outside `./repos`.
+
+To keep a favourite project-local command:
+
+```json
+{
+  "scripts": {
+    "wt:cleanup": "dx worktree cleanup"
+  }
+}
+```
+
+Then run `bun run wt:cleanup -- my-repo` as before.
 
 ## Tech Stack
 

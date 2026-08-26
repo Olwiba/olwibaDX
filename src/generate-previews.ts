@@ -29,6 +29,41 @@ export interface ManifestEntry {
   height: number;
 }
 
+export function resolvePreviewOutputPath(
+  outputDir: string,
+  componentName: string,
+  theme: 'light' | 'dark',
+  includeTheme: boolean,
+): { filename: string; filepath: string } {
+  if (
+    !componentName ||
+    componentName === '.' ||
+    componentName === '..' ||
+    path.isAbsolute(componentName) ||
+    componentName.includes('/') ||
+    componentName.includes('\\')
+  ) {
+    throw new Error(`Invalid preview component name: ${componentName}`);
+  }
+
+  const filename = includeTheme
+    ? `${componentName}-${theme}.png`
+    : `${componentName}.png`;
+  const resolvedOutputDir = path.resolve(outputDir);
+  const filepath = path.resolve(resolvedOutputDir, filename);
+  const relativePath = path.relative(resolvedOutputDir, filepath);
+
+  if (
+    relativePath === '..' ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error(`Invalid preview component name: ${componentName}`);
+  }
+
+  return { filename, filepath };
+}
+
 function findChromePath(): string {
   const candidates =
     process.platform === 'win32'
@@ -70,12 +105,18 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
   const vw = viewport?.width ?? 1280;
   const vh = viewport?.height ?? 800;
 
+  for (const component of components) {
+    for (const theme of themes) {
+      resolvePreviewOutputPath(outputDir, component.name, theme, themes.length > 1);
+    }
+  }
+
   try {
     const res = await fetch(baseUrl);
-    if (!res.ok) throw new Error();
-  } catch {
-    console.error(`\nDev server not running at ${baseUrl}.\nStart it first, then re-run iso:generate.\n`);
-    process.exit(1);
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`.trim());
+  } catch (error) {
+    const detail = error instanceof Error ? `: ${error.message}` : '';
+    throw new Error(`Preview dev server is unreachable at ${baseUrl}${detail}`);
   }
 
   const chromePath = executablePath ?? findChromePath();
@@ -90,6 +131,7 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
   });
 
   const manifest: ManifestEntry[] = [];
+  const captureFailures: Error[] = [];
 
   try {
     for (const component of components) {
@@ -143,9 +185,12 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
           );
           await new Promise((r) => setTimeout(r, 300));
 
-          const filename =
-            themes.length > 1 ? `${component.name}-${theme}.png` : `${component.name}.png`;
-          const filepath = path.join(outputDir, filename);
+          const { filename, filepath } = resolvePreviewOutputPath(
+            outputDir,
+            component.name,
+            theme,
+            themes.length > 1,
+          );
 
           if (captureSelector === null) {
             await page.screenshot({ path: filepath, clip: { x: 0, y: 0, width: vw, height: vh } });
@@ -192,6 +237,10 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
           console.log(`✓ ${filename}`);
         } catch (err) {
           console.error(`✗ ${component.name} (${theme}):`, err);
+          const detail = err instanceof Error ? err.message : String(err);
+          captureFailures.push(
+            new Error(`Failed to capture ${component.name} (${theme}): ${detail}`),
+          );
         } finally {
           await page.close();
         }
@@ -199,6 +248,13 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
     }
   } finally {
     await browser.close();
+  }
+
+  if (captureFailures.length > 0) {
+    throw new AggregateError(
+      captureFailures,
+      `Failed to generate ${captureFailures.length} preview capture(s)`,
+    );
   }
 
   const resolvedManifestPath = manifestPath ?? path.join(outputDir, 'manifest.json');

@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { join, resolve } from "node:path"
+import type sharp from "sharp"
 
 export interface GenerateAssetsConfig {
   name: string
@@ -239,7 +240,7 @@ export async function generateAssets(
 ): Promise<GenerateAssetsResult> {
   const { name, icon, color, outputDir, ogComponent } = config
 
-  let sharpFn: typeof import("sharp")
+  let sharpFn: typeof sharp
   try {
     sharpFn = (await import("sharp")).default
   } catch {

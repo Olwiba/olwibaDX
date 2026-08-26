@@ -11,6 +11,7 @@
 
 - The component scales to width and is allowed to run off the bottom edge. A screenshot that fits entirely inside the frame reads as a picture of an app; one that continues past it reads as the app, and the detail stays legible at the size a link preview is actually seen. A component short enough to fit still centres in the space under the header, so a wide strip does not cling to the wordmark with a gulf beneath it
 - `ogComponent` takes an already-rendered image. Nothing here renders React — a component has to be screenshotted or drawn first
+- The experimental annotated `.env.example` parser documented in 0.0.12 and 0.0.13 was removed and is not part of the current public API
 
 
 
@@ -68,7 +69,7 @@ No user-facing changes.
 
 ### Added
 
-- Parse annotated `.env.example` specs to drive environment variable validation
+- Added an experimental annotated `.env.example` parser for environment variable validation (subsequently removed; it is not part of the current public API)
 
 ### Fixed
 
@@ -78,7 +79,7 @@ No user-facing changes.
 
 ### Added
 
-- Parse annotated `.env.example` specs for environment variable validation
+- Added an experimental annotated `.env.example` parser for environment variable validation (subsequently removed; it is not part of the current public API)
 
 ### Fixed
 

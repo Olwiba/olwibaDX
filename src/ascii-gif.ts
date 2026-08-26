@@ -255,6 +255,7 @@ function createRowColorPalette(options: {
   levels: number
   transparent: boolean
 }) {
+  assertGifPaletteSize("row-color", 1 + options.rowColors.length * options.levels)
   const bg = parseColor(options.backgroundColor)
   const blend = parseColor(options.blendColor)
   const table: number[] = [bg.r, bg.g, bg.b]
@@ -312,6 +313,7 @@ function createMultiAccentPalette(options: {
   levels: number
   transparent: boolean
 }) {
+  assertGifPaletteSize("accent", 1 + (1 + options.accentColors.length) * options.levels)
   const bg = parseColor(options.backgroundColor)
   const blend = parseColor(options.blendColor)
   const base = parseColor(options.color)
@@ -336,6 +338,12 @@ function createMultiAccentPalette(options: {
 
   while (table.length < 256 * 3) table.push(0, 0, 0)
   return { table: Uint8Array.from(table.slice(0, 256 * 3)) }
+}
+
+function assertGifPaletteSize(mode: "accent" | "row-color", entries: number): void {
+  if (entries > 256) {
+    throw new Error(`GIF palette supports at most 256 entries; ${mode} mode requires ${entries}`)
+  }
 }
 
 function parseColor(input: string): RGB {

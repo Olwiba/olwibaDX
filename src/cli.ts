@@ -1,7 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { isAbsolute, join, relative, resolve, sep } from "node:path"
 import { createInterface } from "node:readline/promises"
 import { stdin as input, stdout as output } from "node:process"
+import { isSafeSkillSlug, type ManifestSkill, type SkillsManifest } from "./skills"
 
 const DEFAULT_SOURCE = "https://olwiba.com/skills/manifest.json"
 
@@ -9,6 +10,14 @@ const [command, subcommand] = process.argv.slice(2)
 
 if (command === "skills" && subcommand === "install") {
   await runSkillsInstall()
+} else if ((command === "worktree" || command === "wt") && subcommand === "cleanup") {
+  const { runWorktreeCleanup } = await import("./worktree-cleanup")
+  try {
+    process.exitCode = await runWorktreeCleanup(process.argv.slice(4))
+  } catch (error) {
+    process.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
+    process.exitCode = 1
+  }
 } else if (command === "ascii-gif") {
   await runAsciiGif()
 } else if (command === "generate-assets") {
@@ -17,25 +26,10 @@ if (command === "skills" && subcommand === "install") {
   process.stdout.write(
     "Usage:\n" +
       "  dx skills install [--source <url>] [--target claude|amp] [--all] [--name a,b,c]\n" +
+      "  dx worktree cleanup [repo-name-or-path] [--repos-root <path>] [--remote <name>] [--dry-run] [--force] [--no-fetch]\n" +
       "  dx ascii-gif --text <text> --out <file.gif>\n" +
       "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n",
   )
-}
-
-interface ManifestSkill {
-  slug: string
-  name: string
-  description: string
-  category?: string
-  providers?: string[]
-  examples?: string[]
-  tip?: string | null
-  contentUrl: string
-}
-
-interface SkillsManifestResponse {
-  version: string
-  skills: ManifestSkill[]
 }
 
 async function runSkillsInstall() {
@@ -51,16 +45,15 @@ async function runSkillsInstall() {
 
   const targetDir = target === "amp" ? join(".amp", "skills") : join(".claude", "skills")
 
-  process.stdout.write(`Fetching manifest from ${source}\n`)
+  process.stdout.write(`Fetching manifest from ${safeUrlForDisplay(source)}\n`)
 
-  let manifest: SkillsManifestResponse
+  let manifest: SkillsManifest
   try {
     const res = await fetch(source)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    manifest = (await res.json()) as SkillsManifestResponse
+    manifest = (await res.json()) as SkillsManifest
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    process.stderr.write(`Failed to fetch manifest: ${message}\n`)
+    process.stderr.write(`Failed to fetch manifest: ${safeRequestError(err)}\n`)
     process.exitCode = 1
     return
   }
@@ -83,11 +76,28 @@ async function runSkillsInstall() {
   let failed = 0
 
   for (const skill of selected) {
-    const skillDir = join(installDir, skill.slug)
+    if (!isSafeSkillSlug(skill.slug)) {
+      process.stderr.write("  ✗ invalid skill slug\n")
+      failed++
+      continue
+    }
+
+    const skillDir = resolve(installDir, skill.slug)
+    const relativeDestination = relative(installDir, skillDir)
+    if (
+      !relativeDestination ||
+      relativeDestination === ".." ||
+      relativeDestination.startsWith(`..${sep}`) ||
+      isAbsolute(relativeDestination)
+    ) {
+      process.stderr.write(`  ✗ ${skill.slug}: invalid install destination\n`)
+      failed++
+      continue
+    }
     const skillPath = join(skillDir, "SKILL.md")
-    const url = new URL(skill.contentUrl, source).toString()
 
     try {
+      const url = new URL(skill.contentUrl, source).toString()
       const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const content = await res.text()
@@ -96,14 +106,34 @@ async function runSkillsInstall() {
       process.stdout.write(`  ✓ ${skill.slug}\n`)
       installed++
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      process.stderr.write(`  ✗ ${skill.slug}: ${message}\n`)
+      process.stderr.write(`  ✗ ${skill.slug}: ${safeRequestError(err)}\n`)
       failed++
     }
   }
 
   process.stdout.write(`\n${installed} installed, ${failed} failed\n`)
   process.stdout.write(`Location: ${targetDir}/\n`)
+  if (failed > 0) process.exitCode = 1
+}
+
+function safeUrlForDisplay(value: string): string {
+  try {
+    const url = new URL(value)
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "custom source"
+    url.username = ""
+    url.password = ""
+    url.search = ""
+    url.hash = ""
+    return url.toString()
+  } catch {
+    return "custom source"
+  }
+}
+
+function safeRequestError(error: unknown): string {
+  return error instanceof Error && /^HTTP \d{3}$/.test(error.message)
+    ? error.message
+    : "request failed"
 }
 
 async function selectSkills(
