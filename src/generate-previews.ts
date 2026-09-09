@@ -19,6 +19,15 @@ export interface GeneratePreviewsConfig {
   executablePath?: string;
   padding?: number;
   viewport?: { width?: number; height?: number };
+  /**
+   * Cookies to set before navigating, for pages that only render when signed in.
+   *
+   * Without these, capturing an authenticated page silently photographs its
+   * signed-out state — a sign-in form or an empty shell — and the result looks
+   * like a working screenshot. Use a fixture account; never a real user's
+   * session, since whatever it can see ends up in an image on disk.
+   */
+  cookies?: Array<{ name: string; value: string; domain?: string; path?: string }>;
 }
 
 export interface ManifestEntry {
@@ -100,6 +109,7 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
     executablePath,
     padding = 0,
     viewport,
+    cookies,
   } = config;
 
   const vw = viewport?.width ?? 1280;
@@ -167,6 +177,18 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
           );
 
           await page.setViewport({ width: vw, height: vh });
+
+          if (cookies && cookies.length > 0) {
+            const { hostname } = new URL(baseUrl);
+            await page.setCookie(
+              ...cookies.map((cookie) => ({
+                path: '/',
+                domain: hostname,
+                ...cookie,
+              })),
+            );
+          }
+
           await page.goto(url, { waitUntil: 'networkidle0' });
 
           await page.evaluate(
