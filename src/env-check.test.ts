@@ -117,3 +117,19 @@ EMAIL_PROVIDER=resend
     assert.ok(report.includes("STRIPE_SECRET"))
   })
 })
+
+describe("optionality comes from the example", () => {
+  // Otherwise every unset credential for a service this deployment does not use
+  // is reported, and the real findings drown.
+  test("a key blank in the example may be absent", () => {
+    const result = checkEnv({ example: "RESEND_API_KEY=\nAPP_URL=http://x", actual: "APP_URL=http://y" })
+    assert.deepEqual(result.findings, [])
+  })
+
+  test("a key with a value in the example may not be absent", () => {
+    const result = checkEnv({ example: "APP_URL=http://x", actual: "" })
+    assert.ok(
+      result.findings.some((finding) => finding.kind === "missing" && finding.key === "APP_URL"),
+    )
+  })
+})

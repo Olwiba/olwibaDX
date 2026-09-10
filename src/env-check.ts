@@ -112,17 +112,23 @@ export function checkEnv({
   let okCount = 0;
 
   for (const key of exampleKeys) {
+    // A blank in the example is the example saying this slot is optional — it
+    // is showing the name without claiming a value belongs there. Absent then
+    // means the same as blank, and reporting it drowns the real findings in
+    // unset credentials for services this deployment does not use.
+    const exampleDeclaresValue = exampleEnv.keys.get(key) === true;
+    const isOptional = optionalSet.has(key) || !exampleDeclaresValue;
+
     if (!actualEnv.keys.has(key)) {
-      if (!optionalSet.has(key)) findings.push({ kind: 'missing', key });
+      if (!isOptional) findings.push({ kind: 'missing', key });
       continue;
     }
 
     const hasValue = actualEnv.keys.get(key) === true;
-    const exampleHasValue = exampleEnv.keys.get(key) === true;
 
     // Blank where the example shows a value: the example is demonstrating that
     // something belongs there. Blank in both is a deliberate opt-out.
-    if (!hasValue && exampleHasValue && !optionalSet.has(key)) {
+    if (!hasValue && !isOptional) {
       findings.push({ kind: 'empty', key });
       continue;
     }
