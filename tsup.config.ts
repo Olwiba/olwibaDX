@@ -22,6 +22,10 @@ export default [
       "src/ascii-gif.ts",
       "src/generate-assets.ts",
       "src/env-check.ts",
+      // Dynamically imported by the CLI, so it has to be its own entry — the
+      // CLI bundle is built with splitting off and would otherwise resolve a
+      // relative path into dist that nothing had written.
+      "src/docs-check.ts",
     ],
     format: ["esm"],
     dts: true,

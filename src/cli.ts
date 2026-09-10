@@ -26,13 +26,16 @@ if (command === "skills" && subcommand === "install") {
   await runGenerateAssets()
 } else if (command === "env-check" || command === "env") {
   process.exitCode = await runEnvCheck()
+} else if (command === "docs-check") {
+  process.exitCode = await runDocsCheck()
 } else {
   process.stdout.write(
     "Usage:\n" +
       "  dx skills install [--source <url>] [--target claude|amp] [--all] [--name a,b,c]\n" +
       "  dx worktree cleanup [repo-name-or-path] [--repos-root <path>] [--remote <name>] [--dry-run] [--force] [--no-fetch]\n" +
       "  dx ascii-gif --text <text> --out <file.gif>\n" +
-      "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n",
+      "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n" +
+      "  dx docs-check [--dir <content/docs>]\n",
   )
 }
 
@@ -339,6 +342,45 @@ async function runEnvCheck(): Promise<number> {
   })
 
   process.stdout.write(`${formatEnvReport(result)}${BREAK}`)
+  return result.findings.length > 0 ? 1 : 0
+}
+
+async function runDocsCheck(): Promise<number> {
+  const { readFileSync, existsSync, readdirSync } = await import("node:fs")
+  const { join, relative, sep } = await import("node:path")
+  const { checkDocs, formatDocsReport } = await import("./docs-check")
+
+  const flags = parseFlags(process.argv.slice(3))
+  const dir = flags.dir ?? join("content", "docs")
+
+  if (!existsSync(dir)) {
+    process.stderr.write(
+      `No documentation directory at ${dir}.${BREAK}` +
+        "Pass --dir if this project keeps its pages elsewhere." + BREAK,
+    )
+    return 1
+  }
+
+  const files: string[] = []
+  const walk = (current: string) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = join(current, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (entry.name.endsWith(".mdx")) files.push(full)
+    }
+  }
+  walk(dir)
+
+  const result = checkDocs(
+    files.sort().map((file) => ({
+      // Reported the same way on every platform, so a Windows run and a CI run
+      // produce comparable output.
+      file: relative(process.cwd(), file).split(sep).join("/"),
+      source: readFileSync(file, "utf8"),
+    })),
+  )
+
+  process.stdout.write(`${formatDocsReport(result)}${BREAK}`)
   return result.findings.length > 0 ? 1 : 0
 }
 
