@@ -4,6 +4,8 @@ import { createInterface } from "node:readline/promises"
 import { stdin as input, stdout as output } from "node:process"
 import { isSafeSkillSlug, type ManifestSkill, type SkillsManifest } from "./skills"
 
+const BREAK = "\n"
+
 const DEFAULT_SOURCE = "https://olwiba.com/skills/manifest.json"
 
 const [command, subcommand] = process.argv.slice(2)
@@ -22,6 +24,8 @@ if (command === "skills" && subcommand === "install") {
   await runAsciiGif()
 } else if (command === "generate-assets") {
   await runGenerateAssets()
+} else if (command === "env-check" || command === "env") {
+  process.exitCode = await runEnvCheck()
 } else {
   process.stdout.write(
     "Usage:\n" +
@@ -278,4 +282,68 @@ function parseNumberFlag(value: string | undefined): number | undefined {
   if (value == null) return undefined
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : undefined
+}
+
+
+/**
+ * Compares an environment against the example that documents it.
+ *
+ * With no `--file`, reads the environment from stdin so a deployment's
+ * variables can be pasted straight out of a hosting dashboard. That paste is
+ * held in memory, compared, and dropped: never written to disk, never echoed,
+ * never sent anywhere. The comparison is plain string work — there is no model
+ * involved, which is the only honest way to accept a file of live credentials.
+ */
+async function runEnvCheck(): Promise<number> {
+  const { readFileSync, existsSync } = await import("node:fs")
+  const { checkEnv, formatEnvReport } = await import("./env-check")
+
+  const flags = parseFlags(process.argv.slice(3))
+  const examplePath = flags.example ?? ".env.example"
+
+  if (!existsSync(examplePath)) {
+    process.stderr.write(
+      `No example file at ${examplePath}.${BREAK}` +
+        "It is the schema this compares against; pass --example to point elsewhere." + BREAK,
+    )
+    return 1
+  }
+
+  const example = readFileSync(examplePath, "utf8")
+
+  let actual: string
+  if (flags.file) {
+    if (!existsSync(flags.file)) {
+      process.stderr.write(`No environment file at ${flags.file}.${BREAK}`)
+      return 1
+    }
+    actual = readFileSync(flags.file, "utf8")
+  } else {
+    if (input.isTTY) {
+      process.stdout.write(
+        `Paste the environment below, then press ${process.platform === "win32" ? "Ctrl+Z and Enter" : "Ctrl+D"}.${BREAK}` +
+          "Nothing is stored or transmitted." + BREAK + BREAK,
+      )
+    }
+    actual = await readAllStdin()
+    if (actual.trim() === "") {
+      process.stderr.write("Nothing to check. Pass --file <path> or paste an environment." + BREAK)
+      return 1
+    }
+  }
+
+  const result = checkEnv({
+    example,
+    actual,
+    optional: flags.optional ? flags.optional.split(",").map((key) => key.trim()).filter(Boolean) : [],
+  })
+
+  process.stdout.write(`${formatEnvReport(result)}${BREAK}`)
+  return result.findings.length > 0 ? 1 : 0
+}
+
+async function readAllStdin(): Promise<string> {
+  const chunks: Buffer[] = []
+  for await (const chunk of input) chunks.push(Buffer.from(chunk))
+  return Buffer.concat(chunks).toString("utf8")
 }

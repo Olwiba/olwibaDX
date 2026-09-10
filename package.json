@@ -39,6 +39,10 @@
     "./generate-assets": {
       "import": "./dist/generate-assets.js",
       "types": "./dist/generate-assets.d.ts"
+    },
+    "./env-check": {
+      "import": "./dist/env-check.js",
+      "types": "./dist/env-check.d.ts"
     }
   },
   "files": [

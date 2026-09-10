@@ -21,6 +21,7 @@ export default [
       "src/ascii/index.ts",
       "src/ascii-gif.ts",
       "src/generate-assets.ts",
+      "src/env-check.ts",
     ],
     format: ["esm"],
     dts: true,
