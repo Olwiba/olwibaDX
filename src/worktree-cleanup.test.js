@@ -12,8 +12,16 @@ afterEach(() => {
   temporaryRoots.clear()
 })
 
+/**
+ * `commit.gpgsign` is read from the developer's global config, and a signing
+ * prompt in a test has nothing to type into: the suite hangs until it is
+ * killed rather than failing. Turned off per-invocation so these fixtures do
+ * not depend on how the machine running them is set up.
+ */
 function git(cwd, ...args) {
-  return execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" }).trim()
+  return execFileSync("git", ["-C", cwd, "-c", "commit.gpgsign=false", ...args], {
+    encoding: "utf8",
+  }).trim()
 }
 
 function createMergedWorktree() {

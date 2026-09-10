@@ -21,6 +21,22 @@ const PREVIEW = /<(Sandbox|ComponentPreview)\b/;
 
 const API_REFERENCE = /<APIReference\b/;
 
+/**
+ * Drops fenced and inline code before looking for markers.
+ *
+ * A page that quotes `<Sandbox>` in a table, or shows what the opt-out comment
+ * looks like inside a fence, is describing the markers rather than using them —
+ * nothing is rendered and nothing is claimed. Matching the raw source made the
+ * checker's own documentation page its first false positive, which is the sort
+ * of rule that gets switched off rather than fixed.
+ *
+ * Fences go first so an unpaired backtick inside one cannot swallow the rest of
+ * the file.
+ */
+function withoutCode(source: string): string {
+  return source.replace(/^[ \t]*(`{3,}|~{3,})[\s\S]*?^[ \t]*\1[ \t]*$/gm, '').replace(/`[^`\n]*`/g, '');
+}
+
 export type DocsFinding =
   | { kind: 'missing'; file: string }
   /** Opted out without saying why, which is how an opt-out becomes a habit. */
@@ -143,12 +159,16 @@ export function checkDocs(pages: DocsPage[]): DocsCheckResult {
   let skippedCount = 0;
 
   for (const page of pages) {
-    const hasPreview = PREVIEW.test(page.source);
-    const hasReference = API_REFERENCE.test(page.source);
-    const optedOut = OPT_OUT.test(page.source);
+    // Markers are looked for in what the page renders, not in what it quotes.
+    const rendered = withoutCode(page.source);
+    const hasPreview = PREVIEW.test(rendered);
+    const hasReference = API_REFERENCE.test(rendered);
+    const optedOut = OPT_OUT.test(rendered);
 
     // Checked before anything else: a page whose table cannot run has a worse
-    // problem than a page that has no table.
+    // problem than a page that has no table. Read from the raw source: a props
+    // table is an expression MDX evaluates, and stripping inline code would
+    // change it.
     const broken = hasReference ? propsFailure(page.source) : null;
     if (broken) {
       findings.push({ kind: 'broken-props', file: page.file, reason: broken });
@@ -168,7 +188,7 @@ export function checkDocs(pages: DocsPage[]): DocsCheckResult {
     }
 
     if (optedOut) {
-      if (optOutIsExplained(page.source)) exemptCount += 1;
+      if (optOutIsExplained(rendered)) exemptCount += 1;
       else findings.push({ kind: 'unexplained-opt-out', file: page.file });
       continue;
     }

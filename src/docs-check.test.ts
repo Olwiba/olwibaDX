@@ -117,3 +117,50 @@ describe("the report", () => {
     assert.match(report, /api-reference: none/)
   })
 })
+
+describe("a page that quotes the markers is not using them", () => {
+  // The checker's own documentation page was the first false positive: it
+  // shows what the opt-out comment looks like inside a fence and names
+  // <APIReference> in a table, and got reported for opting out and then
+  // documenting anyway.
+  test("markers inside a fenced block are ignored", () => {
+    const source = [
+      "Pages opt out like this:",
+      "",
+      "```mdx",
+      "{/* api-reference: none — renders its children and nothing else */}",
+      "```",
+      "",
+      "A page with a preview needs one.",
+    ].join("\n")
+
+    assert.deepEqual(checkDocs([page("docs-check.mdx", source)]).findings, [])
+  })
+
+  test("markers inside inline code are ignored", () => {
+    const source = "A `<Sandbox>` with no `<APIReference>` is reported."
+    const result = checkDocs([page("docs-check.mdx", source)])
+    assert.deepEqual(result.findings, [])
+    // No preview means the page is skipped, not documented.
+    assert.equal(result.skippedCount, 1)
+  })
+
+  test("a real preview beside a quoted one is still checked", () => {
+    const source = '<Sandbox id="x" />\n\nThe marker is `<APIReference>`.'
+    const result = checkDocs([page("a.mdx", source)])
+    assert.deepEqual(
+      result.findings.map((finding) => finding.kind),
+      ["missing"],
+    )
+  })
+
+  // Only a closing fence strips anything, so a page with an unpaired one is
+  // read whole. That is the safe direction: the worst case is a false positive
+  // somebody fixes, where stripping to end-of-file would let one stray backtick
+  // switch the check off for everything below it.
+  test("an unterminated fence does not switch the check off", () => {
+    const source = '```mdx\n{/* api-reference: none — because */}\n\n<Sandbox id="x" />'
+    const result = checkDocs([page("a.mdx", source)])
+    assert.notEqual(result.findings.length, 0)
+  })
+})
