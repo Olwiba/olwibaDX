@@ -1,5 +1,6 @@
-import { describe, expect, test } from 'bun:test';
-import { checkEnv, formatEnvReport, parseEnv } from './env-check';
+import assert from "node:assert/strict"
+import { describe, test } from "node:test"
+import { checkEnv, formatEnvReport, parseEnv } from "./env-check"
 
 const EXAMPLE = `
 # Private docs / purchase gate
@@ -9,35 +10,35 @@ PRO_CONTENT_GATED=true
 UI_PRO_SIGNUPS_ENABLED=false
 EMAIL_PROVIDER=preview
 RESEND_API_KEY=
-`;
+`
 
-describe('parsing', () => {
-  test('keeps keys and discards values', () => {
-    const parsed = parseEnv('FOO=secret-value\nBAR=');
-    expect([...parsed.keys.keys()]).toEqual(['FOO', 'BAR']);
-    expect(parsed.keys.get('FOO')).toBe(true);
-    expect(parsed.keys.get('BAR')).toBe(false);
-  });
+describe("parsing", () => {
+  test("keeps keys and discards values", () => {
+    const parsed = parseEnv("FOO=secret-value\nBAR=")
+    assert.deepEqual([...parsed.keys.keys()], ["FOO", "BAR"])
+    assert.equal(parsed.keys.get("FOO"), true)
+    assert.equal(parsed.keys.get("BAR"), false)
+  })
 
-  test('ignores comments and blank lines', () => {
-    expect(parseEnv('# note\n\nFOO=1').keys.size).toBe(1);
-  });
+  test("ignores comments and blank lines", () => {
+    assert.equal(parseEnv("# note\n\nFOO=1").keys.size, 1)
+  })
 
-  test('accepts shell-style export', () => {
-    expect([...parseEnv('export FOO=1').keys.keys()]).toEqual(['FOO']);
-  });
+  test("accepts shell-style export", () => {
+    assert.deepEqual([...parseEnv("export FOO=1").keys.keys()], ["FOO"])
+  })
 
-  test('last assignment wins and the repeat is reported', () => {
-    const parsed = parseEnv('FOO=\nFOO=1');
-    expect(parsed.keys.get('FOO')).toBe(true);
-    expect(parsed.duplicates).toEqual(['FOO']);
-  });
-});
+  test("last assignment wins and the repeat is reported", () => {
+    const parsed = parseEnv("FOO=\nFOO=1")
+    assert.equal(parsed.keys.get("FOO"), true)
+    assert.deepEqual(parsed.duplicates, ["FOO"])
+  })
+})
 
-describe('the failures this exists to catch', () => {
-  // The VITE_ migration left keys addressing names nothing read, so the
-  // private-docs gate was off for weeks while the file said it was on.
-  test('a prefixed leftover is reported as a rename, not an unknown', () => {
+describe("the failures this exists to catch", () => {
+  // The VITE_ migration left keys addressing names nothing read, so a gate sat
+  // off for weeks while the file said it was on.
+  test("a prefixed leftover is reported as a rename, not an unknown", () => {
     const result = checkEnv({
       example: EXAMPLE,
       actual: `
@@ -47,29 +48,30 @@ VITE_PRO_CONTENT_GATED=true
 UI_PRO_SIGNUPS_ENABLED=false
 EMAIL_PROVIDER=resend
 `,
-    });
+    })
 
-    const renamed = result.findings.find((f) => f.kind === 'renamed');
-    expect(renamed).toBeDefined();
-    expect(renamed).toMatchObject({ key: 'VITE_PRO_CONTENT_GATED', looksLike: 'PRO_CONTENT_GATED' });
+    const renamed = result.findings.find((finding) => finding.kind === "renamed")
+    assert.ok(renamed, "expected a rename finding")
+    assert.equal(renamed.kind === "renamed" && renamed.key, "VITE_PRO_CONTENT_GATED")
+    assert.equal(renamed.kind === "renamed" && renamed.looksLike, "PRO_CONTENT_GATED")
 
     // And the setting it was meant to carry is reported absent.
-    expect(result.findings).toContainEqual({ kind: 'missing', key: 'PRO_CONTENT_GATED' });
-  });
+    assert.ok(
+      result.findings.some(
+        (finding) => finding.kind === "missing" && finding.key === "PRO_CONTENT_GATED",
+      ),
+    )
+  })
 
-  test('a key typed with spaces is caught', () => {
-    const result = checkEnv({
-      example: EXAMPLE,
-      actual: 'PRO CONTENT GATED=true',
-    });
+  test("a key typed with spaces is caught", () => {
+    const result = checkEnv({ example: EXAMPLE, actual: "PRO CONTENT GATED=true" })
+    const names = result.findings.map((finding) => ("key" in finding ? finding.key : ""))
+    assert.ok(names.includes("PRO CONTENT GATED"))
+  })
+})
 
-    const names = result.findings.map((f) => ('key' in f ? f.key : ''));
-    expect(names).toContain('PRO CONTENT GATED');
-  });
-});
-
-describe('reporting', () => {
-  test('passes when the environment matches', () => {
+describe("reporting", () => {
+  test("passes when the environment matches", () => {
     const result = checkEnv({
       example: EXAMPLE,
       actual: `
@@ -80,37 +82,38 @@ UI_PRO_SIGNUPS_ENABLED=false
 EMAIL_PROVIDER=resend
 `,
       // Blank in the example, so absence is deliberate.
-      optional: ['RESEND_API_KEY'],
-    });
+      optional: ["RESEND_API_KEY"],
+    })
 
-    expect(result.findings).toEqual([]);
-    expect(formatEnvReport(result)).toContain('PASS');
-  });
+    assert.deepEqual(result.findings, [])
+    assert.ok(formatEnvReport(result).includes("PASS"))
+  })
 
-  test('flags a key present but blank where the example shows a value', () => {
+  test("flags a key present but blank where the example shows a value", () => {
+    const result = checkEnv({ example: "EMAIL_PROVIDER=preview", actual: "EMAIL_PROVIDER=" })
+    assert.ok(
+      result.findings.some(
+        (finding) => finding.kind === "empty" && finding.key === "EMAIL_PROVIDER",
+      ),
+    )
+  })
+
+  test("a blank in both is left alone", () => {
+    const result = checkEnv({ example: "RESEND_API_KEY=", actual: "RESEND_API_KEY=" })
+    assert.deepEqual(result.findings, [])
+  })
+
+  // The whole input is credentials. A report that echoes one is a worse problem
+  // than the drift it found.
+  test("never puts a value in the report", () => {
+    const secret = "sk-live-do-not-print-this"
     const result = checkEnv({
-      example: 'EMAIL_PROVIDER=preview',
-      actual: 'EMAIL_PROVIDER=',
-    });
-    expect(result.findings).toContainEqual({ kind: 'empty', key: 'EMAIL_PROVIDER' });
-  });
-
-  test('a blank in both is left alone', () => {
-    const result = checkEnv({ example: 'RESEND_API_KEY=', actual: 'RESEND_API_KEY=' });
-    expect(result.findings).toEqual([]);
-  });
-
-  // The whole input is credentials. A report that echoes one is a worse
-  // problem than the drift it found.
-  test('never puts a value in the report', () => {
-    const secret = 'sk-live-do-not-print-this';
-    const result = checkEnv({
-      example: 'DATABASE_URL=file:./dev.db\nAPI_KEY=example',
+      example: "DATABASE_URL=file:./dev.db\nAPI_KEY=example",
       actual: `API_KEY=${secret}\nSTRIPE_SECRET=${secret}\nnonsense-${secret}`,
-    });
+    })
 
-    const report = formatEnvReport(result);
-    expect(report).not.toContain(secret);
-    expect(report).toContain('STRIPE_SECRET');
-  });
-});
+    const report = formatEnvReport(result)
+    assert.ok(!report.includes(secret), "a value reached the report")
+    assert.ok(report.includes("STRIPE_SECRET"))
+  })
+})
