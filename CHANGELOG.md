@@ -1,6 +1,23 @@
 # Changelog
 
 
+
+## 0.0.25
+
+### Added
+
+- `dx env-check` (also `dx env`) compares a real environment against the `.env.example` that documents it. The example is the schema, which is what makes this work in repositories that have no typed one — and those are the repositories where environments quietly rot. Exits `1` when there are findings, so it can gate a deploy
+- Renames are their own finding, reported with the name they were probably meant to be: `✗ VITE_PUBLIC_DOCS  →  did you mean PUBLIC_DOCS?`. A renamed key reads as configured at a glance, so calling it a generic unknown would not tell anyone that the setting it was meant to carry is now unset and a default nobody chose is in force. The report also flags missing keys, keys present but empty where the example shows a value, duplicate assignments, and malformed lines
+- Flags: `--example <path>` (defaults to `.env.example`), `--file <path>`, and `--optional <a,b,c>` for keys allowed to be absent or blank. Without `--file` it reads stdin, so a deployment's variables can be pasted straight out of a hosting dashboard
+- `@olwiba/dx/env-check` exports `checkEnv`, `formatEnvReport`, and `parseEnv` for use outside the CLI
+
+### Notes
+
+- The comparison is plain string work in memory. Nothing is written to disk, echoed back, or sent anywhere, and no model is involved — the only honest way to accept a file of live credentials. Values are discarded during parsing rather than filtered out of the report, so a later change to the output format cannot start leaking one; a test asserts a live-looking secret never reaches the output
+- Malformed lines are reported by line number with the first 24 characters only, because a line missing its `=` may itself be a pasted secret
+- Rename detection compares names with non-alphanumerics stripped, and treats a prefix or suffix on an otherwise identical name as a match once the known key is at least six characters. Short keys are left alone rather than guessed at
+- A key blank in both files is treated as a deliberate opt-out, not a finding. Where a key is assigned twice, the last assignment decides, matching what most loaders do
+
 ## 0.0.24
 
 ### Added
