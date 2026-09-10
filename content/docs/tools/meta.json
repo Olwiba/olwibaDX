@@ -1,0 +1,4 @@
+{
+  "title": "Tools",
+  "pages": ["index", "env-check", "dev-banner", "docs-check", "generate-assets", "ascii"]
+}

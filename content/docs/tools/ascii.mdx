@@ -1,0 +1,46 @@
+---
+title: ASCII
+description: Animated ASCII wordmarks for READMEs and terminals.
+---
+
+The banner draws its wordmark from the same renderer, and the renderer is also useful on its
+own — a README header that is text rather than a screenshot stays legible in a diff and in dark
+mode.
+
+```bash
+dx ascii-gif --text "olwibaDX" --accent "DX" --out public/olwibaDX.gif
+```
+
+## Flags
+
+| Flag | Default | What it does |
+| --- | --- | --- |
+| `--text <string>` | — | Required. The wordmark |
+| `--out <file.gif>` | — | Required. Where to write |
+| `--accent <substring>` | — | The part to colour differently |
+| `--accent-color <#hex>` | — | That colour |
+| `--color <#hex>` | — | Everything else |
+| `--background-color <#hex>` | — | Behind it |
+| `--blend-color <#hex>` | — | Colour the animation sweeps through |
+| `--transparent true` | `false` | Transparent background, for READMEs read in both themes |
+| `--font <name>` | DOS Rebel | The figlet font |
+| `--fps <n>` | — | Frames per second |
+| `--duration <seconds>` | — | Loop length |
+| `--scale <n>` | — | Pixels per character |
+| `--padding <n>` | — | Border, in characters |
+
+Generate a light and a dark variant and swap them with a `prefers-color-scheme` picture element
+— this repository's README does exactly that.
+
+## In a page
+
+The rendered form is also a component, so a site can draw the wordmark live rather than shipping
+a GIF:
+
+```tsx
+import { AsciiText } from '@olwiba/cn';
+
+<AsciiText text="olwibaDX" accent="DX" accentColor="var(--primary)" />
+```
+
+That is what the [home page](/) uses.

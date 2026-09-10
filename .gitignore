@@ -8,3 +8,8 @@ artifacts/
 *.tgz
 *.omp.json
 *.stackdump
+
+# Docs site build artefacts
+.source/
+.output/
+site/routeTree.gen.ts

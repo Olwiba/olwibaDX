@@ -1,0 +1,59 @@
+---
+title: Docs check
+description: A page that shows a component off has to document it. This is the check that says so.
+---
+
+A docs page that renders a preview is making a promise: this is a component you can use. The
+properties table is the other half of that promise, and it is the half that goes missing — a
+page reads as finished long before anyone writes the props down.
+
+`dx docs-check` makes the rule mechanical. A preview implies an `<APIReference>`.
+
+```bash
+dx docs-check
+```
+
+Defaults to `content/docs`. Exits `1` on any finding.
+
+## Flags
+
+| Flag | Default | What it does |
+| --- | --- | --- |
+| `--dir <path>` | `content/docs` | Where the pages are |
+
+## What it reports
+
+| Finding | Meaning |
+| --- | --- |
+| **Missing** | Renders a `<Sandbox>` or `<ComponentPreview>` with no `<APIReference>` |
+| **Unexplained opt-out** | Opted out without saying why, which is how an opt-out becomes a habit |
+| **Redundant opt-out** | Opted out and then documented it anyway — the comment is stale |
+| **Broken props** | The props array is not valid JavaScript, so the page cannot render |
+
+Pages with no preview are skipped. The check says nothing about them.
+
+## Opting out
+
+Some components genuinely have no public surface. Say so in the file, with a reason:
+
+```mdx
+{/* api-reference: none — renders its children and takes nothing else */}
+```
+
+The reason is required. An opt-out with no justification is reported, because the alternative
+is a marker that spreads by copy-paste until the check means nothing.
+
+<Callout type="warn">
+  "Takes no props" is a claim worth checking before you write it. An `ErrorPage` page said
+  exactly that and the component had seven.
+</Callout>
+
+## In CI
+
+```json
+{
+  "scripts": {
+    "docs:check": "dx docs-check"
+  }
+}
+```

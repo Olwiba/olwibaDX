@@ -1,0 +1,90 @@
+---
+title: Environment check
+description: Compares a real environment against the example that documents it, and reports key names only.
+---
+
+An environment drifts quietly. A key gets renamed in the code, the deployment keeps the old
+name, and the file still reads as configured — the name you expect is there in all but a
+prefix, so nobody looks twice. Meanwhile a default nobody chose is in force.
+
+`dx env-check` compares two files by key name and tells you which ones drifted.
+
+```bash
+dx env-check
+```
+
+With no flags it reads `.env.example` as the schema and waits for you to paste the environment
+on stdin.
+
+<Callout type="info">
+  Values are discarded as they are read. The report contains key names and counts, and there is
+  a test asserting that a value never reaches it. Nothing is written to disk or transmitted, and
+  no model is involved.
+</Callout>
+
+## Flags
+
+| Flag | Default | What it does |
+| --- | --- | --- |
+| `--example <path>` | `.env.example` | The file to treat as the schema |
+| `--file <path>` | — | Read the environment from a file instead of stdin |
+| `--optional a,b,c` | — | Keys allowed to be absent |
+
+## What it reports
+
+| Finding | Meaning |
+| --- | --- |
+| **Renamed** | Set under a name nothing reads. The setting it was meant to carry is unset. |
+| **Missing** | In the example with a value, absent here |
+| **Present but empty** | Here but blank, where the example shows a value belongs |
+| **Malformed line** | A line with no `=`. Reported by line number, not text |
+| **Set more than once** | Assigned twice. The last one wins, which may not be the one you read |
+| **Unknown** | Here but not in the example. Either a leftover or an undocumented key |
+
+## Optional keys
+
+Optionality is read from the example rather than configured. A key left blank there is the
+example showing a name without claiming a value belongs:
+
+```bash
+# Required — the example demonstrates a value
+DATABASE_URL=file:./dev.db
+
+# Optional — only needed if you use this provider
+RESEND_API_KEY=
+```
+
+`RESEND_API_KEY` may be absent or blank without a finding. `DATABASE_URL` may not.
+
+This is the difference between a report you read and one you learn to skip. Without it, every
+unset credential for a service a given deployment does not use is a finding, and the real ones
+drown.
+
+Use `--optional` for keys the example cannot express that way.
+
+## In CI
+
+Exits `1` on any finding:
+
+```yaml
+- run: bunx @olwiba/dx env-check --file .env
+```
+
+Add it as a script so it is the same command everywhere:
+
+```json
+{
+  "scripts": {
+    "env:check": "dx env-check"
+  }
+}
+```
+
+## In a browser
+
+The comparison needs two strings and returns key names, so it does not need a filesystem. The
+[browser version](/tools/env-check) runs the same code with the same guarantees, which is what
+you want when the environment you are checking is in a hosting dashboard rather than a file:
+copy it out, paste it in, read the drift.
+
+It bundles the `.env.example` from each repository in this stack, or you can paste your own.

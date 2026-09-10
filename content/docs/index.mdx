@@ -1,0 +1,54 @@
+---
+title: Get Started
+description: Developer tooling for the olwiba stack — dev banners, asset generation, and environment checking.
+---
+
+## What is @olwiba/dx?
+
+`@olwiba/dx` is the tooling that sits beside the olwiba packages rather than inside them: the
+banner your dev server prints, the favicons and OG image a new app needs, the check that tells
+you an environment has drifted from the example documenting it.
+
+It is a `devDependency`. Nothing it does ships to your users.
+
+```bash
+bun add -D @olwiba/dx
+```
+
+Most of it is also runnable without installing anything:
+
+```bash
+bunx @olwiba/dx env-check
+```
+
+## Two ways in
+
+Every tool has a command-line form, and that is the primary one — it is where the files are.
+
+Some of them do not need files. `env-check` compares two strings and reports key names, so it
+runs just as well in a browser, which is useful when the environment you want to check is in a
+dashboard on your phone rather than a file on your disk. Those tools have a page here:
+
+- [Environment check](/tools/env-check) — paste an example and an environment, get the drift
+
+The browser versions do the work locally. Nothing you paste is sent anywhere.
+
+## What is in here
+
+| Tool | Command | Use it for |
+| --- | --- | --- |
+| [Environment check](/docs/tools/env-check) | `dx env-check` | Finding keys that drifted from the example |
+| [Docs check](/docs/tools/docs-check) | `dx docs-check` | Pages that exist but nothing links to |
+| [Dev banner](/docs/tools/dev-banner) | Vite plugin | Telling two dev servers apart at a glance |
+| [Asset generation](/docs/tools/generate-assets) | `dx generate-assets` | Favicons and OG images for a new app |
+| [ASCII](/docs/tools/ascii) | `dx ascii-gif` | Wordmarks for READMEs and terminals |
+
+## Conventions
+
+Commands exit non-zero when they find something, so they work in CI without a wrapper:
+
+```bash
+dx env-check --example .env.example --file .env
+```
+
+Nothing writes outside the directory you run it in, and nothing phones home.

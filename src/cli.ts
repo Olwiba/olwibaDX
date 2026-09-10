@@ -35,6 +35,7 @@ if (command === "skills" && subcommand === "install") {
       "  dx worktree cleanup [repo-name-or-path] [--repos-root <path>] [--remote <name>] [--dry-run] [--force] [--no-fetch]\n" +
       "  dx ascii-gif --text <text> --out <file.gif>\n" +
       "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n" +
+      "  dx env-check [--example <.env.example>] [--file <.env>] [--optional a,b,c]\n" +
       "  dx docs-check [--dir <content/docs>]\n",
   )
 }

@@ -1,0 +1,49 @@
+---
+title: Asset generation
+description: Favicons, apple touch icon, and an OG image for a new app, from an icon name and a colour.
+---
+
+A new app needs the same set of images every time, at the same sizes, and getting them wrong is
+invisible until someone shares a link and the preview is blank.
+
+```bash
+dx generate-assets --name "My App" --icon rocket --color "#f97316"
+```
+
+Writes to `public/` by default. Commit the output.
+
+## Flags
+
+| Flag | Required | Default | What it does |
+| --- | --- | --- | --- |
+| `--name <app>` | yes | — | Appears on the OG image |
+| `--icon <name>` | yes | — | A [Lucide](https://lucide.dev) icon name |
+| `--color <#hex>` | yes | — | The accent |
+| `--out <dir>` | no | `public` | Where to write |
+| `--og-component <path>` | no | — | An SVG or image to use instead of the generated OG card |
+
+## What it writes
+
+```
+public/
+  favicon/favicon-16.png
+  favicon/favicon-32.png
+  favicon/favicon-48.png
+  favicon/favicon-64.png
+  apple-touch-icon.png
+  og-image.png
+```
+
+Those are the paths the `@olwiba/docs` root route expects, so a generated set wires itself up.
+
+## Peer dependencies
+
+Kept optional, because most projects install `@olwiba/dx` for the banner and never generate an
+image:
+
+```bash
+bun add -D sharp lucide-static
+```
+
+`sharp` does the rasterising, `lucide-static` supplies the icon. Without them the command fails
+with a message naming what to install rather than a module resolution error.

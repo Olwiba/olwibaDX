@@ -1,0 +1,27 @@
+---
+title: Tools
+description: Everything @olwiba/dx does, and which of it runs in a browser.
+---
+
+Each tool is a command. A few also have a page on this site, for when the thing you want to
+check is not on the machine you are sitting at.
+
+## Checks
+
+Run in CI. Exit non-zero on a finding.
+
+- [`dx env-check`](/docs/tools/env-check) — an environment against the example documenting it.
+  Also at [/tools/env-check](/tools/env-check).
+- [`dx docs-check`](/docs/tools/docs-check) — documentation pages nothing links to.
+
+## Generators
+
+Run once, commit the output.
+
+- [`dx generate-assets`](/docs/tools/generate-assets) — favicons, apple touch icon, OG image.
+- [`dx ascii-gif`](/docs/tools/ascii) — an animated wordmark for a README.
+
+## Build integration
+
+- [Dev banner](/docs/tools/dev-banner) — a Vite plugin and a tsup hook that print the project
+  name in its own colour.

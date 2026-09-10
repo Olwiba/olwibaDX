@@ -1,0 +1,31 @@
+{
+  "include": [
+    "site/**/*.ts",
+    "site/**/*.tsx",
+    "vite.config.ts",
+    "source.config.ts",
+    "server.ts",
+    "src/project.config.ts"
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "types": ["vite/client", "node"],
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "ES2022",
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./site/*"],
+      "fumadocs-mdx:collections/*": [".source/*"]
+    },
+    "noEmit": true
+  }
+}

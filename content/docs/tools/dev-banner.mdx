@@ -1,0 +1,81 @@
+---
+title: Dev banner
+description: Prints the project name in its own colour when a dev server or a build starts.
+---
+
+Four dev servers on four ports look identical in a terminal tab. The banner puts the project
+name and its accent colour at the top of the output, so the tab you are looking at says what it
+is.
+
+## In Vite
+
+```ts
+// vite.config.ts
+import { createDevBannerPlugin, resolveDevPort } from '@olwiba/dx';
+
+export default defineConfig({
+  server: {
+    port: await resolveDevPort(3000),
+  },
+  plugins: [
+    createDevBannerPlugin({
+      segments: [
+        { text: 'olwiba' },
+        { text: 'DX', colorHex: '#f97316' },
+      ],
+    }),
+  ],
+});
+```
+
+`apply: 'serve'` is set for you, so it never runs during a build.
+
+## In tsup
+
+```ts
+// tsup.config.ts
+import { createTsupBannerHook } from '@olwiba/dx';
+
+export default defineConfig({
+  onSuccess: createTsupBannerHook({ segments: [{ text: 'olwiba' }, { text: 'DX', colorHex: '#f97316' }] }),
+});
+```
+
+## From a project config
+
+If a project already has a config carrying its brand, both hooks have a form that reads it, so
+the colour is defined once:
+
+```ts
+// src/project.config.ts
+import type { ProjectConfig } from '@olwiba/dx';
+
+export const projectConfig = {
+  id: 'olwibaDX',
+  label: 'olwibaDX',
+  brandAccent: { hex: '#f97316' },
+  banner: {
+    segments: [{ text: 'olwiba' }, { text: 'DX', accent: true }],
+  },
+} as const satisfies ProjectConfig;
+```
+
+```ts
+import { createProjectDevBannerPlugin } from '@olwiba/dx';
+
+plugins: [createProjectDevBannerPlugin(projectConfig)];
+```
+
+`accent: true` means "the project's colour", so renaming the brand colour is one edit.
+
+## Ports
+
+```ts
+import { resolveDevPort } from '@olwiba/dx';
+
+const port = await resolveDevPort(3000);
+```
+
+Probes upward from the port you pass and returns the first free one. Vite's own
+auto-increment does not fire reliably under the TanStack Start plugin, which is why the port is
+resolved before it is handed over rather than after.
