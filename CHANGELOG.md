@@ -2,6 +2,11 @@
 
 
 
+
+## 0.0.26
+
+No user-facing changes.
+
 ## 0.0.25
 
 ### Added
