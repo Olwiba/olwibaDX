@@ -31,8 +31,20 @@ jobs:
 
       - name: Validate package exports
         run: |
-          bun -e 'for (const path of ["@olwiba/dx", "@olwiba/dx/eslint", "@olwiba/dx/skills", "@olwiba/dx/generate-previews", "@olwiba/dx/ascii", "@olwiba/dx/ascii-gif", "@olwiba/dx/generate-assets"]) await import(path)'
+          bun -e 'for (const path of ["@olwiba/dx", "@olwiba/dx/eslint", "@olwiba/dx/skills", "@olwiba/dx/generate-previews", "@olwiba/dx/ascii", "@olwiba/dx/ascii-gif", "@olwiba/dx/generate-assets", "@olwiba/dx/env-check"]) await import(path)'
           npm pack --dry-run
 
       - name: Validate CLI
         run: bun dist/cli.js --help
+
+      # The docs site is built from this same repo but is not part of the
+      # published package, so nothing above touches it. Last, because the tsup
+      # build these steps follow writes to the same dist/.
+      - name: Typecheck site
+        run: bun run types:check
+
+      - name: Build site
+        run: bun run web:build
+
+      - name: Check the docs pages document what they show
+        run: bun run docs:check

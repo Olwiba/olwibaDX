@@ -57,7 +57,9 @@
     "web:dev": "fumadocs-mdx && vite dev",
     "start": "bun run server.ts",
     "types:check": "fumadocs-mdx && tsc --noEmit && tsc --noEmit -p tsconfig.site.json",
-    "presets:generate": "bun scripts/generate-env-presets.ts"
+    "presets:generate": "bun scripts/generate-env-presets.ts",
+    "docs:check": "bun src/cli.ts docs-check",
+    "env:check": "bun src/cli.ts env-check"
   },
   "devDependencies": {
     "@olwiba/cn": "0.1.40",
