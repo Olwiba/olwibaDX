@@ -1,5 +1,16 @@
 # Changelog
 
+
+## 0.0.24
+
+### Added
+
+- Support authenticated pages in generatePreviews
+
+### Changed
+
+- Harden public DX tooling
+
 ## 0.0.23
 
 ### Added
