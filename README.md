@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/public/olwibaDX--light.gif" />
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/public/olwibaDX.gif" />
-    <img src="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/public/olwibaDX.gif" alt="olwibaDX" style="width: 100%;" />
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/.github/assets/olwibaDX--light.gif" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/.github/assets/olwibaDX.gif" />
+    <img src="https://raw.githubusercontent.com/Olwiba/olwibaDX/master/.github/assets/olwibaDX.gif" alt="olwibaDX" style="width: 100%;" />
   </picture>
 </p>
 
@@ -78,7 +78,7 @@ Render an animated ASCII GIF from any text. This is what produced the README ban
 bunx @olwiba/dx ascii-gif \
   --text "olwibaDX" \
   --accent "DX" \
-  --out ./public/olwibaDX.gif
+  --out ./.github/assets/olwibaDX.gif
 ```
 
 ### Asset Generator
