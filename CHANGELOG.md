@@ -3,6 +3,15 @@
 
 
 
+
+## 0.0.27
+
+No user-facing changes.
+
+### Notes
+
+- The `env-check` test suite now uses `node:test` and `node:assert/strict` like the rest of the repo. It had imported `bun:test`, which passed locally under bun but failed the CI typecheck — `tsconfig` declares `types: ["node"]` only, and CI typechecks the whole `src` tree. Behaviour of `checkEnv`, `formatEnvReport`, and `parseEnv` is unchanged
+
 ## 0.0.26
 
 No user-facing changes.
