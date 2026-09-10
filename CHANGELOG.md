@@ -4,6 +4,18 @@
 
 
 
+
+## 0.0.28
+
+### Changed
+
+- `env-check` takes optionality from the example. A key the example shows blank may now be absent from the environment without being reported — a blank names the setting without claiming a value belongs there, which is the example saying the slot is optional, so absent means the same as blank. Keys the example shows with a value are still reported when they are missing or blank, and `--optional` still covers those
+
+### Notes
+
+- Across four repositories this took fifteen findings down to six. Nine of the removed ones were unset credentials for services those deployments do not use. Drowning the real findings is how a checker gets ignored, and an ignored checker is worse than none — it leaves the next person assuming the environment was verified. The six that remain are all real, including `PACKAGES_TOKEN` set in three environments and documented in none
+- This widens the opt-out described in 0.0.25. Blank in both files was already treated as deliberate; absent where the example is blank now reads the same way
+
 ## 0.0.27
 
 No user-facing changes.
