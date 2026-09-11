@@ -8,6 +8,19 @@
 
 
 
+
+## 0.0.32
+
+No user-facing changes.
+
+### Notes
+
+- The documentation site's Agent Skills page moves up under Get Started, above Tools, and now carries a table of the catalogue saying what each skill does. It had a paragraph announcing that a list existed, which is the reader doing the navigating to find out whether any of it is for them
+- The Toolbox page is gone. A Tools section and a Toolbox section sitting next to each other read as the same thing said twice, and what Toolbox listed is not part of this package — a page that ships with the docs reads as documentation for the thing being documented, whatever the prose around it says
+- The GIF in the "why" modal showed at a fixed height under `object-cover`, which cropped the top and bottom off it. It now honours its natural 480x312 aspect inside the dialog, so the whole thing is visible and the modal does not grow to do it
+- `.env.example` documents `VITE_GA_MEASUREMENT_ID` for the site, left blank, which is `env-check` reading it as optional under the 0.0.28 rule — unset is the supported default, and nothing loads or leaves the page when it is. It is a `VITE_` build argument baked into the image, so setting it on a running container does nothing until the image is rebuilt
+- `@olwiba/cn` and `@olwiba/docs` move to 0.1.44 and 0.1.48. Both are devDependencies used to build the site; neither reaches the published package, which still ships `dist` alone
+
 ## 0.0.31
 
 ### Added
