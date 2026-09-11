@@ -12,7 +12,7 @@ export const Route = createDocsRoot({
     // stack it belongs to, which none of these tools are actually specific to.
     title: 'olwibaDX - Developer super powers, from the command line',
     description:
-      "Olwiba's effort to give developers super powers. Dev banners, asset generation, environment checking and documentation checks — from the command line or the browser.",
+      "Olwiba's effort to give developers super powers. Dev banners, asset generation, environment checking and documentation checks, from the command line or the browser.",
     ogImage: 'https://dx.olwiba.com/og-image.png',
   },
   favicons: [

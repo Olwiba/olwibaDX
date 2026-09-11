@@ -4,7 +4,7 @@ description: A page that shows a component off has to document it. This is the c
 ---
 
 A docs page that renders a preview is making a promise: this is a component you can use. The
-properties table is the other half of that promise, and it is the half that goes missing — a
+properties table is the other half of that promise, and it is the half that goes missing, because a
 page reads as finished long before anyone writes the props down.
 
 `dx docs-check` makes the rule mechanical. A preview implies an `<APIReference>`.
@@ -21,7 +21,7 @@ Defaults to `content/docs`. Exits `1` on any finding.
 3 documentation page(s) need attention:
   marketing/hero-section.mdx
     Shows a preview but has no <APIReference>. Add one, or opt out with
-    {/* api-reference: none — why */} if there is no public API here.
+    {/* api-reference: none (why) */} if there is no public API here.
   app/command-palette.mdx
     Opted out of the API reference without saying why.
   overlays/sheet.mdx
@@ -46,7 +46,7 @@ and the props table is blank because a quote inside a description was not escape
 | --- | --- |
 | **Missing** | Renders a `<Sandbox>` or `<ComponentPreview>` with no `<APIReference>` |
 | **Unexplained opt-out** | Opted out without saying why, which is how an opt-out becomes a habit |
-| **Redundant opt-out** | Opted out and then documented it anyway — the comment is stale |
+| **Redundant opt-out** | Opted out and then documented it anyway, so the comment is stale |
 | **Broken props** | The props array is not valid JavaScript, so the page cannot render |
 
 Pages with no preview are skipped. The check says nothing about them.
@@ -56,7 +56,7 @@ Pages with no preview are skipped. The check says nothing about them.
 Some components genuinely have no public surface. Say so in the file, with a reason:
 
 ```mdx
-{/* api-reference: none — renders its children and takes nothing else */}
+{/* api-reference: none (renders its children and takes nothing else) */}
 ```
 
 The reason is required. An opt-out with no justification is reported, because the alternative

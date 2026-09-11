@@ -20,6 +20,7 @@ import {
   Textarea,
 } from '@olwiba/cn';
 import { checkEnv, formatEnvReport, type EnvFinding } from '../../../src/env-check';
+import { TriangleAlert } from 'lucide-react';
 import { envPresets } from '~/lib/env-presets';
 
 export const Route = createFileRoute('/tools/env-check')({
@@ -29,12 +30,12 @@ export const Route = createFileRoute('/tools/env-check')({
 const CUSTOM = '__custom__';
 
 const LABELS: Record<EnvFinding['kind'], string> = {
-  renamed: 'Renamed — set under a name nothing reads',
+  renamed: 'Renamed: set under a name nothing reads',
   missing: 'Missing',
   empty: 'Present but empty',
   malformed: 'Malformed line',
   duplicate: 'Set more than once',
-  unknown: 'Unknown — not in the example',
+  unknown: 'Unknown: not in the example',
 };
 
 const ORDER: EnvFinding['kind'][] = [
@@ -61,7 +62,7 @@ const TONE: Record<EnvFinding['kind'], string> = {
  *
  * `checkEnv` is imported from the package source rather than reimplemented, so
  * there is exactly one definition of what a finding is. It takes two strings
- * and returns key names — no filesystem, no network, nothing to configure —
+ * and returns key names, with no filesystem, no network and nothing to configure,
  * which is what makes it work unchanged in a browser.
  *
  * Everything below is `useState`. There is no loader, no server function and no
@@ -99,16 +100,20 @@ function EnvCheckTool() {
       <h1 className="text-3xl font-semibold tracking-tight">Environment check</h1>
       <p className="mt-2 text-muted-foreground">
         Compares a real environment against the example that documents it, and names the keys
-        that drifted. The finding that matters is a renamed key: it reads as configured while
-        the setting it was meant to carry sits unset.
+        that drifted.
       </p>
 
-      <Alert className="mt-6">
-        <AlertTitle>Nothing leaves this page</AlertTitle>
+      {/* Yellow rather than neutral. The first half of this is reassurance and
+          the second half is a real caveat, and a caveat set in body grey is one
+          nobody reads. */}
+      <Alert variant="warning" className="mt-6">
+        <TriangleAlert className="size-4" />
+        <AlertTitle>Nothing leaves this page, but read this anyway</AlertTitle>
         <AlertDescription>
-          The comparison runs in your browser. Values are discarded as they are read — only key
-          names are compared, and only key names appear in the result. There is no request to
-          send them anywhere, and no AI involved.
+          The comparison runs in your browser. Values are discarded as they are read, only key
+          names are compared, and nothing is sent to a server. That said, any browser extension
+          you have installed can read what is on this page. Use your judgement about which
+          secrets you paste into a tab.
         </AlertDescription>
       </Alert>
 
@@ -149,7 +154,7 @@ function EnvCheckTool() {
                 autoComplete="off"
               />
               <p className="text-xs text-muted-foreground">
-                A key left blank here is read as optional — the example is showing the name
+                A key left blank here is read as optional. The example is showing the name
                 without claiming a value belongs there.
               </p>
             </div>
@@ -165,8 +170,7 @@ function EnvCheckTool() {
         <CardHeader>
           <CardTitle>2. The environment</CardTitle>
           <CardDescription>
-            Paste the real thing — the whole file, secrets and all. It is read once in this tab
-            and never stored.
+            Paste the real thing, the whole file. It is read once in this tab and never stored.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">

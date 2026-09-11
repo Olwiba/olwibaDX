@@ -98,6 +98,98 @@ function findChromePath(): string {
   );
 }
 
+/**
+ * Collapses a preview frame down to the height of what it is actually showing.
+ *
+ * Docs sandboxes render into an iframe, and a page can ask for a tall canvas so
+ * an application shell has somewhere to be. That is right for the page and
+ * wrong for a screenshot: a chat bubble photographed inside a 640px frame is
+ * mostly empty pixels, and every page asking for that canvas produced an image
+ * of exactly the same height regardless of its contents.
+ *
+ * The iframe is written with `srcDoc`, so it is same-origin and its document
+ * can be measured from here. Runs in the page, stringified by Puppeteer.
+ *
+ * Deliberately conservative. It only shrinks, never grows, and it leaves the
+ * frame alone unless the content is both measurable and meaningfully shorter.
+ * A shell whose children size themselves against the frame would otherwise
+ * collapse to nothing the moment the frame stopped being tall.
+ */
+// Typed loosely on purpose: this package targets Node and carries no DOM lib,
+// because everything else in it runs in a terminal. The body below is
+// stringified by Puppeteer and executed in the page, where these globals exist.
+function shrinkFrameToContent(selector: string): void {
+  const d: any = (globalThis as any).document;
+  const wrapper: any = d?.querySelector(selector);
+  if (!wrapper) return;
+
+  const iframe = wrapper.querySelector('iframe');
+  if (!iframe) return;
+
+  let doc: any = null;
+  try {
+    doc = iframe.contentDocument;
+  } catch {
+    // Cross-origin. Nothing to measure, so leave the frame as the page built it.
+    return;
+  }
+  if (!doc) return;
+
+  const root = doc.getElementById('sandbox-root') ?? doc.body;
+  if (!root) return;
+
+  // A fixed-canvas sandbox pins html, body and the mount node to `height:100%`,
+  // which stretches whatever is inside them to the full frame. Measuring
+  // against that chain always reports the frame's own height, so release it
+  // first. The sandbox does the same thing when it sizes itself to content.
+  const chain = [doc.documentElement, doc.body, root];
+  const saved = chain.map((node: any) => node?.getAttribute('style') ?? null);
+  const restore = () => {
+    chain.forEach((node: any, index: number) => {
+      if (!node) return;
+      if (saved[index] === null) node.removeAttribute('style');
+      else node.setAttribute('style', saved[index]);
+    });
+  };
+
+  for (const node of chain as any[]) {
+    if (!node) continue;
+    node.style.height = '';
+    node.style.minHeight = '';
+  }
+
+  // The union of the children's boxes rather than the root's own height: the
+  // root is a flex column and may still be taller than what it contains.
+  let contentHeight = 0;
+  for (const child of Array.from(root.children) as any[]) {
+    contentHeight = Math.max(contentHeight, child.getBoundingClientRect().bottom);
+  }
+  contentHeight = Math.ceil(contentHeight);
+
+  const frameHeight = iframe.clientHeight;
+  // Below this, assume the demo sized itself against the frame and has just
+  // collapsed now that the frame stopped being tall. An application shell does
+  // exactly that, and shrinking it would photograph a sliver.
+  const PLAUSIBLE = 120;
+  const WORTH_IT = 24;
+
+  if (contentHeight < PLAUSIBLE || contentHeight > frameHeight - WORTH_IT) {
+    restore();
+    return;
+  }
+
+  // The released chain stays released: the capture should show the content
+  // laid out naturally, not re-stretched to a frame it no longer fills.
+  //
+  // Both elements, and the wrapper is the one that matters. It carries the
+  // fixed height inline and the iframe inside it is `h-full`, so shrinking
+  // only the frame changes nothing that a screenshot would see: the capture is
+  // measured from the wrapper's box. Its `min-height` floor has to go with it.
+  iframe.style.height = `${contentHeight}px`;
+  wrapper.style.height = `${contentHeight}px`;
+  wrapper.style.minHeight = '0';
+}
+
 export async function generatePreviews(config: GeneratePreviewsConfig): Promise<void> {
   const {
     baseUrl,
@@ -224,7 +316,8 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
             await page.evaluate(
               `document.querySelector(${JSON.stringify(captureSelector)}).style.minHeight = '0'`,
             );
-            await new Promise((r) => setTimeout(r, 100));
+            await page.evaluate(shrinkFrameToContent, captureSelector);
+            await new Promise((r) => setTimeout(r, 150));
 
             const box = await el.boundingBox();
             if (!box) throw new Error(`Could not get bounding box for: ${captureSelector}`);

@@ -19,10 +19,10 @@ Fetching manifest from https://skills.olwiba.com/manifest.json
 
 Available skills (4):
 
-  1. release-train — Publish a package and the repositories that depend on it
-  2. lode-record — Write a decision into the lode knowledge filesystem
-  3. preview-capture — Regenerate documentation previews after a component change
-  4. env-drift — Compare a deployment's environment against its example
+  1. release-train: Publish a package and the repositories that depend on it
+  2. lode-record: Write a decision into the lode knowledge filesystem
+  3. preview-capture: Regenerate documentation previews after a component change
+  4. env-drift: Compare a deployment's environment against its example
 
 Select skills (comma-separated numbers, or "all"): 1,4
 
@@ -38,8 +38,8 @@ Select skills (comma-separated numbers, or "all"): 1,4
 | --- | --- | --- |
 | `--source <url>` | the default manifest | Where to fetch from |
 | `--target claude\|amp` | `claude` | `.claude/skills` or `.amp/skills` |
-| `--all` | — | Install everything, no prompt |
-| `--name a,b,c` | — | Install these slugs, no prompt |
+| `--all` | - | Install everything, no prompt |
+| `--name a,b,c` | - | Install these slugs, no prompt |
 
 `--all` and `--name` exist so this can run unattended, in a setup script or a devcontainer
 build.
@@ -50,7 +50,7 @@ build.
 .claude/skills/<slug>/SKILL.md
 ```
 
-or `.amp/skills/` with `--target amp`. Commit them — a skill that only exists on one machine
+or `.amp/skills/` with `--target amp`. Commit them. A skill that only exists on one machine
 is a workflow only one person has.
 
 <Callout variant="warn">

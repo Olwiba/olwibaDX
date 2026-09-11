@@ -1,0 +1,46 @@
+---
+title: Agent Skills
+description: Reusable prompts and workflows for AI coding agents, installable with dx skills install.
+---
+
+A skill is a markdown file an agent reads to learn a workflow. It lives in a repository, and
+each project that wants it needs its own copy.
+
+The catalogue is hosted on [olwiba.com/skills](https://olwiba.com/skills). It is maintained
+there rather than here, so this page links out instead of restating it. Everything in it works
+with Claude Code, Cursor, AMP, Windsurf and anything else that reads skill files off disk.
+
+## Installing
+
+[`dx skills install`](/docs/tools/skills) pulls them into the current project. It reads the
+published manifest, so you get whatever is current rather than whatever was current when you
+last copied files around.
+
+```bash
+bunx @olwiba/dx skills install
+```
+
+Pick from a list, or take the lot:
+
+```bash
+bunx @olwiba/dx skills install --all
+bunx @olwiba/dx skills install --name debug,fix-ci
+```
+
+Skills land in `.claude/skills/` by default. Pass `--target amp` for `.amp/skills/`.
+
+## What is in there
+
+At the time of writing the catalogue covers branch descriptions, a council of models, debugging,
+CI fixes, implementing review feedback, driving a browser, resolving merge conflicts, a pirate
+mode, and a guide to when you do not need a React effect.
+
+That list moves. [Browse the current one](https://olwiba.com/skills) rather than trusting this
+paragraph.
+
+## Writing your own
+
+A skill is just a markdown file with frontmatter naming it and describing when to use it. There
+is nothing olwiba-specific about the format. If you write one that other people would want,
+the manifest is a public JSON file and the install command accepts a `--source` URL, so you can
+host your own catalogue without asking anyone.

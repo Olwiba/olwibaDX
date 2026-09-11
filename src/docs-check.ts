@@ -208,7 +208,7 @@ export function formatDocsReport(result: DocsCheckResult): string {
       lines.push(
         `  ${finding.file}`,
         '    Shows a preview but has no <APIReference>. Add one, or opt out with',
-        '    {/* api-reference: none — why */} if there is no public API here.',
+        '    {/* api-reference: none (why) */} if there is no public API here.',
       );
     } else if (finding.kind === 'broken-props') {
       lines.push(

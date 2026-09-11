@@ -24,6 +24,8 @@ export { serverLoader } from '~/lib/docs-loader';
 export const sidebarSections: SidebarSection[] = [
   { name: 'Get Started', href: '/docs' },
   { name: 'Tools', href: '/docs/tools' },
+  { name: 'Agent Skills', href: '/docs/skills' },
+  { name: 'Toolbox', href: '/docs/toolbox' },
 ];
 
 export function getDocsSlugsFromPath(pathname: string) {

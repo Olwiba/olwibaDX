@@ -18,42 +18,44 @@ export interface WhyDialogProps {
 /**
  * The story behind the toolkit, for anyone who clicks "Whaaat?".
  *
- * Deliberately plain-spoken. None of this is a pitch — the honest version of
- * why these tools exist is more interesting than a feature list, and it is the
- * one thing a visitor cannot get from the command reference.
+ * Two short paragraphs and a send-off. There is no close button: the dialog
+ * ends in a button that closes it, and a second way out in the corner competes
+ * with the one that is actually fun to press. Escape and the overlay still
+ * work.
+ *
+ * The GIF is served from `public/`, not hotlinked to Giphy. A third-party host
+ * in the page is a request we do not control, on a site whose whole pitch is
+ * that it does not phone anywhere.
  */
 export function WhyDialog({ open, onOpenChange }: WhyDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent showCloseButton={false} className="sm:max-w-md">
+        {/* Capped by height rather than width so a wide GIF cannot decide how
+            wide the dialog is. */}
+        <img
+          src="/why.gif"
+          alt=""
+          className="h-36 w-full rounded-lg object-cover"
+        />
+
         <DialogHeader>
           <DialogTitle>Whaaat is all this?</DialogTitle>
-          <DialogDescription>
-            The short version: it is the stuff I kept rebuilding.
-          </DialogDescription>
+          <DialogDescription>Friction, mostly.</DialogDescription>
         </DialogHeader>
 
         <div className="text-muted-foreground flex flex-col gap-3 text-sm leading-relaxed">
           <p>
-            Every site and tool I build needs the same unglamorous things — checking an
-            environment against its example, generating icons, cleaning up worktrees, getting a
-            banner to print without eating half the terminal. I kept writing them again,
-            slightly differently, and then fixing the same bugs twice.
+            I kept hitting the same friction points building my own things, so I started
+            building small tools to get past them. That is all this is: a pile of solutions to
+            problems I have actually had.
           </p>
           <p>
-            So this is that pile, cleaned up. Almost all of it started as a solution to a
-            problem I hit in the middle of building something else. A few pieces are here
-            because I got annoyed enough to do it properly once.
-          </p>
-          <p>
-            I am sharing it because it is more fun that way. If it saves you an afternoon, or
-            spares you a bug I have already paid for, that is the whole idea — better tools,
-            less yak-shaving, more shipping.
+            They are packaged up and shared because that is more fun than keeping them in a
+            drawer. If one of them saves you an afternoon, good.
           </p>
         </div>
 
-        {/* Centred and on its own row: it is the only action here, and it is a
-            send-off rather than a confirmation. */}
         <div className="flex justify-center pt-2">
           <Button
             onClick={() => {
