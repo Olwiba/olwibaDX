@@ -7,9 +7,12 @@ import appCss from '~/styles/app.css?url';
 
 export const Route = createDocsRoot({
   meta: {
-    title: 'olwibaDX - Developer tooling for the olwiba stack',
+    // The metadata is what search results and link previews show, so it says
+    // the same thing the page does. It used to describe the package by the
+    // stack it belongs to, which none of these tools are actually specific to.
+    title: 'olwibaDX - Developer super powers, from the command line',
     description:
-      'Dev banners, asset generation, and environment checking. Usable from the command line or the browser.',
+      "Olwiba's effort to give developers super powers. Dev banners, asset generation, environment checking and documentation checks — from the command line or the browser.",
     ogImage: 'https://dx.olwiba.com/og-image.png',
   },
   favicons: [
