@@ -4,11 +4,28 @@ description: Reusable prompts and workflows for AI coding agents, installable wi
 ---
 
 A skill is a markdown file an agent reads to learn a workflow. It lives in a repository, and
-each project that wants it needs its own copy.
+each project that wants one needs its own copy.
 
-The catalogue is hosted on [olwiba.com/skills](https://olwiba.com/skills). It is maintained
-there rather than here, so this page links out instead of restating it. Everything in it works
-with Claude Code, Cursor, AMP, Windsurf and anything else that reads skill files off disk.
+The catalogue is hosted on [olwiba.com/skills](https://olwiba.com/skills) and maintained there,
+so this page links out rather than restating it. They work with Claude Code, Cursor, AMP,
+Windsurf and anything else that reads skill files off disk.
+
+## The catalogue
+
+| Skill | Category | What it does |
+| --- | --- | --- |
+| [`/debug`](https://olwiba.com/skills/debug) | Debug | Adds structured logging to track down a bug, through a local log file and an optional HTTP server for browser-side logs |
+| [`/council`](https://olwiba.com/skills/council) | Exploration | Spawns several agents to explore an area of a codebase properly before anything is changed |
+| [`/iterate-browser`](https://olwiba.com/skills/iterate-browser) | Exploration | Iterates on UI changes on its own, using console output and browser tools |
+| [`/fix-ci`](https://olwiba.com/skills/fix-ci) | PR and Git | Reads a CI failure and applies the fix the error log points at |
+| [`/implement-feedback`](https://olwiba.com/skills/implement-feedback) | PR and Git | Checks each piece of review feedback against the diff, then implements it or reports back |
+| [`/branch-description`](https://olwiba.com/skills/branch-description) | PR and Git | Writes a structured PR description from the changes and copies it to the clipboard |
+| [`/resolving-merge-conflicts`](https://olwiba.com/skills/resolving-merge-conflicts) | PR and Git | Resolves conflicts by working out what each branch was for, rather than picking a side |
+| [`/you-might-not-need-an-effect`](https://olwiba.com/skills/you-might-not-need-an-effect) | Code quality | Reviews React for effects that should not be there, following the react.dev guidance |
+| [`/scallywag-mode`](https://olwiba.com/skills/scallywag-mode) | 🦜 | Turns the whole conversation pirate, crew names and all |
+
+That list moves. [Browse the current one](https://olwiba.com/skills) rather than trusting this
+table.
 
 ## Installing
 
@@ -29,18 +46,8 @@ bunx @olwiba/dx skills install --name debug,fix-ci
 
 Skills land in `.claude/skills/` by default. Pass `--target amp` for `.amp/skills/`.
 
-## What is in there
-
-At the time of writing the catalogue covers branch descriptions, a council of models, debugging,
-CI fixes, implementing review feedback, driving a browser, resolving merge conflicts, a pirate
-mode, and a guide to when you do not need a React effect.
-
-That list moves. [Browse the current one](https://olwiba.com/skills) rather than trusting this
-paragraph.
-
 ## Writing your own
 
-A skill is just a markdown file with frontmatter naming it and describing when to use it. There
-is nothing olwiba-specific about the format. If you write one that other people would want,
-the manifest is a public JSON file and the install command accepts a `--source` URL, so you can
-host your own catalogue without asking anyone.
+A skill is a markdown file with frontmatter naming it and saying when to use it. Nothing about
+the format is olwiba-specific. The manifest is public JSON and the install command takes a
+`--source` URL, so you can host your own catalogue without asking anyone.

@@ -31,12 +31,16 @@ export function WhyDialog({ open, onOpenChange }: WhyDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton={false} className="sm:max-w-md">
-        {/* Capped by height rather than width so a wide GIF cannot decide how
-            wide the dialog is. */}
+        {/* Whole frame, never a crop. `object-cover` at a fixed height was
+            cutting the top and bottom off the GIF. The dialog is capped at
+            `max-w-md`, so honouring the natural 480x312 aspect keeps it around
+            260px tall without the modal growing to fit it. */}
         <img
           src="/why.gif"
           alt=""
-          className="h-36 w-full rounded-lg object-cover"
+          width={480}
+          height={312}
+          className="w-full rounded-lg object-contain"
         />
 
         <DialogHeader>
