@@ -5,6 +5,27 @@
 
 
 
+
+## 0.0.29
+
+### Added
+
+- `dx docs-check` walks a documentation tree and reports every page that shows a component off without documenting it — a `<Sandbox>` or `<ComponentPreview>` with no `<APIReference>` beside it. A preview is a promise that this is a component you can use, and the properties table is the half of that promise that goes missing, because a page reads as finished long before anyone writes the props down. `--dir <path>` for projects that keep their pages somewhere other than `content/docs`. Exits `1` when there are findings, so it can gate a build
+- Pages with no public surface to document opt out in the file, with `{/* api-reference: none — why */}`. The reason is required — the marker alone is a finding — because an escape hatch that costs nothing to use stops being an exception. Opting out and then adding a reference anyway is reported too, so the stale comment gets removed rather than outliving what it described
+- `docs-check` evaluates each `<APIReference>` props array and reports one that is not valid JavaScript, naming the error. MDX leaves a page's expressions unevaluated until something renders it, so a mis-escaped quote inside a description survives every build step and surfaces as a blank page in front of a reader. A props entry missing its `name` or `type` is reported the same way
+
+### Changed
+
+- `dx env-check` appears in the CLI usage text, which it never has
+
+### Notes
+
+- Markers are read from what a page renders, not from what it quotes: fenced and inline code come out first. Matching the raw source made the checker's own documentation page its first false positive, and a rule that fires on the page describing the rule gets switched off rather than fixed. Props tables are still read from the raw source, because those are expressions MDX evaluates and stripping inline code would change them
+- Only a closing fence strips anything, so a page with an unpaired backtick is read whole. That is the safe direction — the cost is a false positive somebody fixes, where stripping to end of file would let one stray backtick disable the check for everything below it
+- The checker ships as a CLI command only. There is no `@olwiba/dx/docs-check` subpath export the way `env-check` has one, so `checkDocs` and `formatDocsReport` are not importable yet
+- Pages without a preview are counted and otherwise left alone. This says nothing about index pages, guides, or concept pages — it only holds a page to what the page itself claims
+- The repository now builds a documentation site for these tools, including a browser-side `env-check` that imports `src/env-check.ts` directly rather than reimplementing it, so the CLI and the page cannot disagree about what a finding is. None of it is in the published package, which still ships `dist` alone
+
 ## 0.0.28
 
 ### Changed
