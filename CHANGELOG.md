@@ -6,6 +6,15 @@
 
 
 
+
+## 0.0.30
+
+No user-facing changes.
+
+### Notes
+
+- The documentation site's title and description now say what the homepage says. They described the package by the stack it belongs to, which none of these tools are specific to, and the description predated `docs-check` — metadata is what search results and link previews show, so every link to the site described something other than what a reader would find there. The site is not part of the published package, which still ships `dist` alone
+
 ## 0.0.29
 
 ### Added
