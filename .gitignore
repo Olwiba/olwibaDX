@@ -13,3 +13,4 @@ artifacts/
 .source/
 .output/
 site/routeTree.gen.ts
+.gstack/
