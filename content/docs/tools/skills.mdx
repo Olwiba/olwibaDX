@@ -1,0 +1,60 @@
+---
+title: Skills
+description: Installs agent skills from a manifest into .claude/skills or .amp/skills.
+---
+
+Agent skills are markdown files an assistant reads to learn a workflow. They live in a
+repository and have to be copied into each project that wants them.
+
+```bash
+dx skills install
+```
+
+With no flags it fetches the default manifest and asks which to install.
+
+## What it looks like
+
+```ansi
+Fetching manifest from https://skills.olwiba.com/manifest.json
+
+Available skills (4):
+
+  1. release-train — Publish a package and the repositories that depend on it
+  2. lode-record — Write a decision into the lode knowledge filesystem
+  3. preview-capture — Regenerate documentation previews after a component change
+  4. env-drift — Compare a deployment's environment against its example
+
+Select skills (comma-separated numbers, or "all"): 1,4
+
+  ✓ release-train
+  ✓ env-drift
+
+2 installed, 0 failed
+```
+
+## Flags
+
+| Flag | Default | What it does |
+| --- | --- | --- |
+| `--source <url>` | the default manifest | Where to fetch from |
+| `--target claude\|amp` | `claude` | `.claude/skills` or `.amp/skills` |
+| `--all` | — | Install everything, no prompt |
+| `--name a,b,c` | — | Install these slugs, no prompt |
+
+`--all` and `--name` exist so this can run unattended, in a setup script or a devcontainer
+build.
+
+## Where they land
+
+```
+.claude/skills/<slug>/SKILL.md
+```
+
+or `.amp/skills/` with `--target amp`. Commit them — a skill that only exists on one machine
+is a workflow only one person has.
+
+<Callout variant="warn">
+  Slugs are validated before anything is written. A manifest is a remote file deciding local
+  paths, and a slug containing `../` would place a file wherever it liked; those are rejected
+  rather than sanitised.
+</Callout>

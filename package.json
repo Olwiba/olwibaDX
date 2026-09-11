@@ -59,7 +59,8 @@
     "types:check": "fumadocs-mdx && tsc --noEmit && tsc --noEmit -p tsconfig.site.json",
     "presets:generate": "bun scripts/generate-env-presets.ts",
     "docs:check": "bun src/cli.ts docs-check",
-    "env:check": "bun src/cli.ts env-check"
+    "env:check": "bun src/cli.ts env-check",
+    "showcase:build": "bun scripts/build-showcase.ts"
   },
   "devDependencies": {
     "@olwiba/cn": "0.1.40",

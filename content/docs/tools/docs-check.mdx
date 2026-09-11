@@ -15,6 +15,25 @@ dx docs-check
 
 Defaults to `content/docs`. Exits `1` on any finding.
 
+## What it looks like
+
+```ansi
+3 documentation page(s) need attention:
+  marketing/hero-section.mdx
+    Shows a preview but has no <APIReference>. Add one, or opt out with
+    {/* api-reference: none — why */} if there is no public API here.
+  app/command-palette.mdx
+    Opted out of the API reference without saying why.
+  overlays/sheet.mdx
+    Its <APIReference> props are not valid JavaScript, so the page will not render.
+    Unexpected identifier 'phone'
+
+41 documented, 2 exempt, 12 without a preview
+```
+
+That last one is the finding a build never gives you: the page compiles, the site deploys,
+and the props table is blank because a quote inside a description was not escaped.
+
 ## Flags
 
 | Flag | Default | What it does |

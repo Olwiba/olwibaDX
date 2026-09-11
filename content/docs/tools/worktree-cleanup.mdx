@@ -1,0 +1,86 @@
+---
+title: Worktree cleanup
+description: Removes git worktrees whose branches already merged, and explains every one it keeps.
+---
+
+Worktrees accumulate. A branch merges, the PR closes, and the directory stays on disk holding
+a full checkout — a few hundred megabytes each, across as many repositories as you work in.
+
+`dx worktree cleanup` removes the ones whose branches are provably merged and leaves the rest
+alone, saying why for each.
+
+```bash
+dx worktree cleanup olwibaDX
+```
+
+## What it looks like
+
+```ansi
+Repo: olwibaDX
+Path: C:\Workspace\nexus\repos\olwibaDX
+Fetching latest from origin...
+
+Worktrees needing attention (not automatically removed):
+  feature/env-builder
+    uncommitted changes
+    C:\Workspace\worktrees\olwibaDX-env-builder
+  fix/preview-capture
+    remote branch exists; merge into master not confirmed
+    C:\Workspace\worktrees\olwibaDX-preview-capture
+
+Worktrees to remove:
+  docs/unified-experience - branch merged into master - ~212 MB
+    C:\Workspace\worktrees\olwibaDX-unified-experience
+  chore/lockfile-refresh - branch merged into master (remote branch deleted) - ~188 MB
+    C:\Workspace\worktrees\olwibaDX-lockfile-refresh
+Total space to reclaim: ~400 MB
+
+Removing worktree: docs/unified-experience ...
+Removing worktree: chore/lockfile-refresh ...
+
+Done. Removed 2 worktree(s), reclaimed ~400 MB; skipped 0.
+Summary: 2 worktree(s) still need attention (see report above).
+```
+
+<Callout variant="info">
+  Start with `--dry-run`. It prints exactly the report above, stops before `Removing
+  worktree:`, and tells you what it would have reclaimed.
+</Callout>
+
+## Flags
+
+| Flag | Default | What it does |
+| --- | --- | --- |
+| `[repo-name-or-path]` | current repo | Which repository to clean |
+| `--repos-root <path>` | — | Where to resolve a bare repo name from |
+| `--remote <name>` | `origin` | Remote to fetch and compare against |
+| `--dry-run` | — | Report only, change nothing |
+| `--force` | — | Skip the confirmation prompt |
+| `--no-fetch` | — | Skip the fetch, compare against refs you already have |
+
+## What it refuses to remove
+
+The removals are the boring half. The list it declines is the useful one, because each entry
+names something you have not finished:
+
+| Reason | What it means |
+| --- | --- |
+| `current working directory` | You are standing in it |
+| `uncommitted changes` | Work that exists nowhere else |
+| `remote branch exists; merge into master not confirmed` | Still open. A PR, probably |
+| `remote branch deleted; merge into master not confirmed` | Branch is gone but commits are not in `master` — the dangerous one |
+| `branch points at current master; automatic removal skipped` | Nothing distinguishes it from `master` |
+| `worktree path missing` | Registered but deleted from disk. `git worktree prune` territory |
+
+That fourth one is why `--no-fetch` is a flag rather than the default. A squash-merged PR
+deletes the remote branch, and without a fetch the local view cannot tell "merged and tidied
+up" from "deleted while unmerged".
+
+## Removal is conservative by design
+
+A worktree is removed only when its commits are demonstrably reachable from the default
+branch — either the remote branch merged, or the branch is gone and `HEAD` is an ancestor of
+`master`. Everything else is reported and kept.
+
+Getting this wrong deletes work that exists nowhere else, so the check errs towards keeping
+directories you did not need.

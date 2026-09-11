@@ -22,6 +22,37 @@ on stdin.
   no model is involved.
 </Callout>
 
+## What it looks like
+
+```ansi
+  8 keys checked against 14 in the example, 5 correct
+
+Renamed — set under a name nothing reads:
+  ✗ VITE_PRO_CONTENT_GATED  →  did you mean PRO_CONTENT_GATED?
+
+Missing:
+  ✗ PRO_CONTENT_GATED
+  ✗ UI_PRO_WAITLIST_ENABLED
+  ✗ EMAIL_FROM
+
+Present but empty:
+  ✗ EMAIL_PROVIDER
+
+Malformed line:
+  ✗ line 8: NONSENSE-LINE-NO-EQUALS…
+
+Unknown — not in the example:
+  ✗ STRIPE_SECRET
+
+1 key(s) look renamed. The setting they were meant to carry is unset,
+which usually means a default is in force that nobody chose.
+
+FAIL — 7 finding(s).
+```
+
+Key names and counts. No value from either file appears, including on the malformed line,
+which is truncated because a line missing its `=` may still be a pasted secret.
+
 ## Flags
 
 | Flag | Default | What it does |

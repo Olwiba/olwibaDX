@@ -14,3 +14,6 @@ artifacts/
 .output/
 site/routeTree.gen.ts
 .gstack/
+
+# Showcase sources, re-downloadable via `bun run showcase:build`
+.showcase-cache/

@@ -59,6 +59,18 @@
   --color-code-highlight: var(--code-highlight);
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-iso-scroll: iso-scroll 75s linear infinite;
+  --animate-iso-fadein: iso-fadein 1.2s ease-out forwards;
+
+  @keyframes iso-scroll {
+    from { transform: translateY(0); }
+    to { transform: translateY(calc(-100% / 3)); }
+  }
+
+  @keyframes iso-fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
   @keyframes accordion-down {
     from { height: 0; }
     to { height: var(--radix-accordion-content-height); }

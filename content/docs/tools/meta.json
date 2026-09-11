@@ -1,4 +1,13 @@
 {
   "title": "Tools",
-  "pages": ["index", "env-check", "dev-banner", "docs-check", "generate-assets", "ascii"]
+  "pages": [
+    "index",
+    "env-check",
+    "docs-check",
+    "worktree-cleanup",
+    "skills",
+    "dev-banner",
+    "generate-assets",
+    "ascii"
+  ]
 }
