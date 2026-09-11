@@ -5,9 +5,11 @@ import {
   mdxComponents,
   CopyCommandButton,
   DocsLayout,
+  FeedbackSidebarItem,
   type PageLoaderData,
   type SidebarSection,
 } from '@olwiba/docs';
+import { getFeedbackConfig, submitFeedback } from '~/lib/feedback-server';
 
 export { serverLoader } from '~/lib/docs-loader';
 
@@ -62,6 +64,12 @@ export function DocsPage({ loaderData }: { loaderData: PageLoaderData }) {
       loaderData={loaderData}
       pageTree={data.pageTree as any}
       sections={sidebarSections}
+      sidebarBottomSlot={
+        <FeedbackSidebarItem
+          getConfig={() => getFeedbackConfig()}
+          submit={(payload) => submitFeedback({ data: payload })}
+        />
+      }
     >
       <DocsContent path={data.path} />
     </DocsLayout>
