@@ -7,6 +7,13 @@
 
 
 
+
+## 0.0.31
+
+### Added
+
+- Skills and toolbox pages, a shorter modal, and previews that fit
+
 ## 0.0.30
 
 No user-facing changes.
