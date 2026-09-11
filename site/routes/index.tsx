@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import * as React from 'react';
 import { AsciiText, Button } from '@olwiba/cn';
+import { WhyDialog } from '~/components/WhyDialog';
 import { IsometricPlane, type IsometricImage } from '~/components/IsometricPlane';
 import rawManifest from '../showcase-manifest.json';
 
@@ -16,6 +18,8 @@ export const Route = createFileRoute('/')({
 });
 
 function Home() {
+  const [whyOpen, setWhyOpen] = React.useState(false);
+
   return (
     <div className="relative flex flex-col flex-1 min-h-[calc(100svh-var(--header-height)-var(--footer-height))] justify-center items-center px-4 py-16 text-center">
       {showcase.length > 0 && <IsometricPlane images={showcase} />}
@@ -29,9 +33,11 @@ function Home() {
 
       <div className="relative z-10 flex flex-col items-center w-full">
         <AsciiText text="olwibaDX" accent="DX" accentColor="var(--primary)" />
+        {/* It used to describe itself by the stack it belongs to, which only
+            means something to someone already inside that stack. None of these
+            tools are specific to it. */}
         <p className="text-muted-foreground text-lg mb-8 max-w-md">
-          Developer tooling for the olwiba stack. Every tool runs from the command line; the
-          ones that work in a browser are here too.
+          Olwiba&apos;s effort to give developers super powers.
         </p>
         <div className="flex gap-4">
           <Button asChild>
@@ -39,11 +45,15 @@ function Home() {
               Get Started
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link to="/tools/env-check">Env check</Link>
+          {/* Env check keeps its place in the header nav. What the homepage
+              was missing was somewhere to explain itself. */}
+          <Button variant="outline" onClick={() => setWhyOpen(true)}>
+            Whaaat?
           </Button>
         </div>
       </div>
+
+      <WhyDialog open={whyOpen} onOpenChange={setWhyOpen} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ const navItems = [
   { label: 'Docs', href: '/docs' },
   { label: 'Tools', href: '/docs/tools' },
   { label: 'Env check', href: '/tools/env-check' },
+  { label: 'Skills', href: '/skills' },
 ];
 
 const REPO = 'https://github.com/Olwiba/olwibaDX';
