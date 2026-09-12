@@ -6,7 +6,6 @@ import { DocsHeader, cn } from '@olwiba/docs';
 const navItems = [
   { label: 'Docs', href: '/docs' },
   { label: 'Tools', href: '/docs/tools' },
-  { label: 'Env check', href: '/tools/env-check' },
 ];
 
 const REPO = 'https://github.com/Olwiba/olwibaDX';

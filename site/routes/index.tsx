@@ -5,10 +5,11 @@ import { WhyDialog } from '~/components/WhyDialog';
 import { IsometricPlane, type IsometricImage } from '~/components/IsometricPlane';
 import rawManifest from '../showcase-manifest.json';
 
-type ManifestEntry = { file: string; width: number; height: number };
+type ManifestEntry = { file: string; still: string; width: number; height: number };
 
 const showcase: IsometricImage[] = (rawManifest as ManifestEntry[]).map((entry) => ({
   src: `/showcase/${entry.file}`,
+  mobileSrc: `/showcase/${entry.still}`,
   width: entry.width,
   height: entry.height,
 }));
@@ -22,7 +23,7 @@ function Home() {
 
   return (
     <div className="relative flex flex-col flex-1 min-h-[calc(100svh-var(--header-height)-var(--footer-height))] justify-center items-center px-4 py-16 text-center">
-      {showcase.length > 0 && <IsometricPlane images={showcase} />}
+      {showcase.length > 0 && <IsometricPlane images={showcase} optimizeMobile />}
 
       <div className="absolute inset-0 z-[1] pointer-events-none">
         <div className="absolute inset-x-0 top-0 h-24 sm:h-64 bg-gradient-to-b from-background" />
@@ -45,8 +46,6 @@ function Home() {
               Get Started
             </Link>
           </Button>
-          {/* Env check keeps its place in the header nav. What the homepage
-              was missing was somewhere to explain itself. */}
           <Button variant="outline" onClick={() => setWhyOpen(true)}>
             Whaaat?
           </Button>

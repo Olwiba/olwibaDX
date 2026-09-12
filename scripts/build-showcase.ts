@@ -60,6 +60,7 @@ let totalOut = 0;
 for (const id of SOURCES) {
   const gif = join(WORK, `${id}.gif`);
   const webp = join(OUT, `${id}.webp`);
+  const still = join(OUT, `${id}.still.webp`);
 
   // Cached so re-encoding does not re-download 34MB every time.
   let cached = false;
@@ -90,6 +91,20 @@ for (const id of SOURCES) {
     webp,
   ]);
 
+  // A real single-frame asset lets the isometric plane keep its movement on
+  // phones without asking mobile WebKit to decode hundreds of animated images.
+  await run([
+    'ffmpeg', '-y', '-v', 'error',
+    '-i', gif,
+    '-frames:v', '1',
+    '-vf', `scale='min(${TARGET_WIDTH},iw)':-1:flags=lanczos`,
+    '-c:v', 'libwebp',
+    '-lossless', '0',
+    '-q:v', '70',
+    '-compression_level', '6',
+    still,
+  ]);
+
   const inSize = statSync(gif).size;
   const outSize = statSync(webp).size;
   totalIn += inSize;
@@ -102,7 +117,7 @@ for (const id of SOURCES) {
 
 // Anything left behind is a source that was removed from SOURCES. Left in place
 // it would keep being deployed while nothing referenced it.
-const expected = new Set(SOURCES.map((id) => `${id}.webp`));
+const expected = new Set(SOURCES.flatMap((id) => [`${id}.webp`, `${id}.still.webp`]));
 for (const file of readdirSync(OUT)) {
   if (!expected.has(file)) {
     rmSync(join(OUT, file));
@@ -117,10 +132,14 @@ console.log(
 // The plane sizes each card from its loop's real aspect ratio, so the
 // dimensions have to travel with the files. Read back from the encoded output
 // rather than the sources: these are what the browser actually loads.
-const manifest: Array<{ file: string; width: number; height: number }> = [];
+const manifest: Array<{ file: string; still: string; width: number; height: number }> = [];
 for (const id of SOURCES) {
   const bytes = new Uint8Array(await Bun.file(join(OUT, `${id}.webp`)).arrayBuffer());
-  manifest.push({ file: `${id}.webp`, ...readWebpSize(bytes) });
+  manifest.push({
+    file: `${id}.webp`,
+    still: `${id}.still.webp`,
+    ...readWebpSize(bytes),
+  });
 }
 
 await Bun.write(

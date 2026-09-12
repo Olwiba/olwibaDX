@@ -2,6 +2,8 @@ import * as React from 'react';
 
 export interface IsometricImage {
   src: string;
+  /** Optional static equivalent used by the mobile optimisation. */
+  mobileSrc?: string;
   alt?: string;
   width?: number;
   height?: number;
@@ -14,6 +16,8 @@ export interface IsometricPlaneProps {
   cardWidth?: number;
   cardHeight?: number | 'auto';
   scrollDuration?: number;
+  /** Use each image's static `mobileSrc` at phone widths. */
+  optimizeMobile?: boolean;
 }
 
 function seededRng(seed: number) {
@@ -40,6 +44,7 @@ export function IsometricPlane({
   cardWidth = 176,
   cardHeight = 'auto',
   scrollDuration = 75,
+  optimizeMobile = false,
 }: IsometricPlaneProps) {
   const baseRows = React.useMemo(
     () => buildGrid(images, rows, cols),
@@ -100,7 +105,7 @@ export function IsometricPlane({
                       style={{ width: cardWidth, height: h }}
                     >
                       <img
-                        src={img.src}
+                        src={optimizeMobile && isoNarrow ? (img.mobileSrc ?? img.src) : img.src}
                         alt={img.alt ?? ''}
                         width={img.width}
                         height={img.height}

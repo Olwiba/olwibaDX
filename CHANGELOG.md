@@ -9,6 +9,13 @@
 
 
 
+
+## 0.0.33
+
+### Changed
+
+- Show the version pill beside the credit line
+
 ## 0.0.32
 
 No user-facing changes.
