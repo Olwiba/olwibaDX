@@ -63,8 +63,8 @@
     "showcase:build": "bun scripts/build-showcase.ts"
   },
   "devDependencies": {
-    "@olwiba/cn": "0.1.44",
-    "@olwiba/docs": "0.1.48",
+    "@olwiba/cn": "0.1.47",
+    "@olwiba/docs": "0.1.49",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "1.154.8",
     "@tanstack/react-start": "1.154.8",
