@@ -37,6 +37,14 @@ function buildGrid<T>(items: T[], rows: number, cols: number): T[][] {
   });
 }
 
+const PORTRAIT_BASELINE = 16 / 9;
+
+function mobilePlaneScale(width: number, height: number) {
+  const aspectRatio = height / Math.max(width, 1);
+  const portraitOverscan = Math.max(1, aspectRatio / PORTRAIT_BASELINE);
+  return Math.min(1.55, 1.2 * portraitOverscan);
+}
+
 export function IsometricPlane({
   images,
   cols = 13,
@@ -56,12 +64,20 @@ export function IsometricPlane({
   // viewport almost all of it sat outside the screen. Pulled back and scaled
   // down instead of hidden — the point of the thing is that it is seen.
   const [isoNarrow, setIsoNarrow] = React.useState(false);
+  const [isoNarrowScale, setIsoNarrowScale] = React.useState(1.2);
   React.useEffect(() => {
     const query = window.matchMedia('(max-width: 640px)');
-    const sync = () => setIsoNarrow(query.matches);
+    const sync = () => {
+      setIsoNarrow(query.matches);
+      setIsoNarrowScale(mobilePlaneScale(window.innerWidth, window.innerHeight));
+    };
     sync();
     query.addEventListener('change', sync);
-    return () => query.removeEventListener('change', sync);
+    window.addEventListener('resize', sync);
+    return () => {
+      query.removeEventListener('change', sync);
+      window.removeEventListener('resize', sync);
+    };
   }, []);
 
   const [mounted, setMounted] = React.useState(false);
@@ -84,7 +100,7 @@ export function IsometricPlane({
           className="transform-gpu"
           style={{
             transform: isoNarrow
-              ? 'translateX(0px) scale(1.05) rotateX(55deg) rotateZ(-45deg)'
+              ? `translateX(0px) scale(${isoNarrowScale}) rotateX(55deg) rotateZ(-45deg)`
               : 'translateX(180px) scale(1.6) rotateX(55deg) rotateZ(-45deg)',
             transformOrigin: 'center center',
             transformStyle: 'preserve-3d',
