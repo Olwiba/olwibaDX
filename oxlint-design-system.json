@@ -7,14 +7,14 @@
       "componentImports": ["^@olwiba/(cn|ui|ui-pro|render)(/|$)"],
       "mergeFunctions": ["cn"],
       "variantFunctions": ["cva"],
-      "note": "@olwiba/cn owns how these components look. A product composes them and supplies layout; it does not restyle them. Colour comes from theme tokens (primary, muted, destructive and friends) so a component follows light and dark and survives a brand change. If a component cannot express what a design needs, add the variant to @olwiba/cn rather than overriding it at the call site, so every product gets it. See ECOSYSTEM.md."
+      "note": "@olwiba/cn owns how these components look. A product composes them and supplies layout; it does not restyle them. Colour comes from theme tokens (primary, muted, destructive and friends) so a component follows light and dark and survives a brand change. If a component cannot express what a design needs, add the variant to @olwiba/cn rather than overriding it at the call site, so every product gets it. See ECOSYSTEM.md. Every rule here is a warning on adoption: the existing products predate these rules and a gate that fails on day one gets switched off rather than satisfied. Promote a rule to error once its violations are cleared, starting with the colour and spacing ones, which are the smallest."
     }
   },
   "rules": {
-    "shadcn/no-raw-colors": "error",
-    "shadcn/no-arbitrary-values": "error",
-    "shadcn/no-inline-styles": "error",
-    "shadcn/no-unknown-classes": "error",
+    "shadcn/no-raw-colors": "warn",
+    "shadcn/no-arbitrary-values": "warn",
+    "shadcn/no-inline-styles": "warn",
+    "shadcn/no-unknown-classes": "warn",
     "shadcn/no-restyle": ["warn", { "allow": ["layout"] }],
     "shadcn/require-static-classes": "warn"
   }
