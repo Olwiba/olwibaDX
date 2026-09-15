@@ -11,6 +11,23 @@
 
 
 
+
+## 0.0.35
+
+### Added
+
+- `@olwiba/dx/oxlint-design-system.json`, an oxlint preset that puts the design system's rules where a linter can read them. `@olwiba/cn` owns how its components look, colour comes from theme tokens so a component follows light and dark and survives a brand change, and a product composes rather than restyles — until now those lived in component comments and prose, which is the least reliable place to keep a rule
+- The preset carries the `@shadcn/lint` settings rather than each product rediscovering them: `@olwiba/cn` as the design system, `componentImports` covering `cn`, `ui`, `ui-pro` and `render`, `cn` as the merge function and `cva` as the variant function. A product extends it from its own `oxlint.json`, so a new product inherits the ruleset instead of hand-rolling it and the rules change in one place. Requires oxlint 1.80 or later, which is where its JS plugin API lands
+
+### Notes
+
+- All six rules — `no-raw-colors`, `no-arbitrary-values`, `no-inline-styles`, `no-unknown-classes`, `no-restyle` and `require-static-classes` — are warnings on adoption. Four of them started as errors, against roughly 150 existing violations across the two products that predate the rules, and a lint gate that fails the first time it runs does not get satisfied, it gets switched off. As warnings the counts are real rather than estimated from a grep, and a rule gets promoted to error once its violations are cleared, starting with the colour and spacing ones, which are the smallest
+- `no-restyle` allows `layout`. Supplying layout is the part of composition a product is meant to do; the rule is about a product reaching past that into how a component looks
+- That reasoning is also in the `note` the settings hand to an agent, so whoever picks this up next reads it where they are working rather than here
+- The preset is a JSON file published as-is, not a build output, so `files` now lists `oxlint-design-system.json` beside `dist`. This is the first thing the published package ships that is not `dist`
+- Nothing in the repository consumes the preset yet and it is not on the documentation site or in the README. It is there for products to extend
+- `@olwiba/cn` and `@olwiba/docs` move to 0.1.53 and 0.1.52. Both are devDependencies used to build the site; neither reaches the published package
+
 ## 0.0.34
 
 No user-facing changes.
