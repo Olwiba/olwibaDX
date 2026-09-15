@@ -16,6 +16,7 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./oxlint-design-system.json": "./oxlint-design-system.json",
     "./eslint": {
       "import": "./dist/eslint.js",
       "types": "./dist/eslint.d.ts"
@@ -46,7 +47,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "oxlint-design-system.json"
   ],
   "scripts": {
     "build": "tsup",

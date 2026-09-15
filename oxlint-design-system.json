@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "jsPlugins": ["@shadcn/lint"],
+  "settings": {
+    "shadcn": {
+      "ui": "@olwiba/cn",
+      "componentImports": ["^@olwiba/(cn|ui|ui-pro|render)(/|$)"],
+      "mergeFunctions": ["cn"],
+      "variantFunctions": ["cva"],
+      "note": "@olwiba/cn owns how these components look. A product composes them and supplies layout; it does not restyle them. Colour comes from theme tokens (primary, muted, destructive and friends) so a component follows light and dark and survives a brand change. If a component cannot express what a design needs, add the variant to @olwiba/cn rather than overriding it at the call site, so every product gets it. See ECOSYSTEM.md."
+    }
+  },
+  "rules": {
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-arbitrary-values": "error",
+    "shadcn/no-inline-styles": "error",
+    "shadcn/no-unknown-classes": "error",
+    "shadcn/no-restyle": ["warn", { "allow": ["layout"] }],
+    "shadcn/require-static-classes": "warn"
+  }
+}
