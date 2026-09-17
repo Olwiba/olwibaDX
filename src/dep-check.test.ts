@@ -131,15 +131,19 @@ describe("which direction the pin disagrees", () => {
     assert.equal(result.blocking, 1)
   })
 
-  test("the two get different advice", () => {
+  test("the hoisting note appears only when something is ahead", () => {
     const stale = formatDepReport(check([["a", "2.0.0"]], { a: "1.0.0" }))
-    assert.match(stale, /bun install/)
+    assert.match(stale, /Run bun install to install dependencies\./)
     assert.ok(!stale.includes("hoisting"))
 
     const ahead = formatDepReport(check([["b", "1.0.0"]], { b: "2.0.0" }))
     assert.match(ahead, /hoisting/)
     assert.match(ahead, /Raise the pin/)
-    assert.ok(!ahead.includes("bun install"))
+  })
+
+  test("blocking rows are marked x and warnings !", () => {
+    assert.match(formatDepReport(check([["a", "2.0.0"]], { a: "1.0.0" })), /^ {2}x a\s/m)
+    assert.match(formatDepReport(check([["b", "1.0.0"]], { b: "2.0.0" })), /^ {2}! b\s/m)
   })
 })
 
@@ -202,22 +206,51 @@ describe("skipping", () => {
   })
 })
 
+// The shape is deliberately Raygun.Frontend's scripts/depcheck.mjs, so the two
+// projects read the same. These assertions are what keeps them aligned.
 describe("report", () => {
-  test("a clean run states the count on one line", () => {
+  test("a clean run states it on one line, like depcheck.mjs does", () => {
     const report = formatDepReport(check([["@olwiba/cn", "0.1.55"]], { "@olwiba/cn": "0.1.55" }))
-    assert.match(report, /^\[dep-check\] 1 of 1 dependencies agree/)
+    assert.equal(report, "[dep-check] all 1 packages match package.json")
     assert.ok(!report.includes("\n"))
   })
 
-  test("a clean run mentions what it could not compare", () => {
+  test("a clean run says how many it had no version for", () => {
     const report = formatDepReport(check([["@olwiba/dx", "workspace:*"]], {}))
-    assert.match(report, /1 not comparable/)
+    assert.match(report, /\(1 without a version to compare\)/)
   })
 
-  test("findings name the wanted and installed versions", () => {
+  test("the header counts problem packages", () => {
+    assert.match(
+      formatDepReport(check([["a", "2.0.0"]], { a: "1.0.0" })),
+      /\[dep-check\] 1 problem package:/,
+    )
+    assert.match(
+      formatDepReport(check([["a", "2.0.0"], ["b", "2.0.0"]], { a: "1.0.0", b: "1.0.0" })),
+      /\[dep-check\] 2 problem packages:/,
+    )
+  })
+
+  test("a row carries its reason and both versions", () => {
     const report = formatDepReport(check([["@olwiba/ui-pro", "0.1.63"]], { "@olwiba/ui-pro": "0.1.61" }))
-    assert.match(report, /Stale/)
-    assert.match(report, /@olwiba\/ui-pro\s+wants 0\.1\.63, has 0\.1\.61/)
-    assert.match(report, /bun install/)
+    assert.match(report, /x @olwiba\/ui-pro\s+stale\s+0\.1\.61 installed, 0\.1\.63 required/)
+  })
+
+  test("missing and unreadable rows say so in place of a version", () => {
+    assert.match(
+      formatDepReport(check([["left-pad", "1.3.0"]], {})),
+      /x left-pad\s+missing\s+nothing installed, 1\.3\.0 required/,
+    )
+    assert.match(
+      formatDepReport(check([["broken", "1.0.0"]], { broken: "" })),
+      /x broken\s+unreadable\s+no version in its manifest, 1\.0\.0 required/,
+    )
+  })
+
+  test("blocking rows come before warnings", () => {
+    const report = formatDepReport(
+      check([["ahead-one", "1.0.0"], ["stale-one", "2.0.0"]], { "ahead-one": "2.0.0", "stale-one": "1.0.0" }),
+    )
+    assert.ok(report.indexOf("stale-one") < report.indexOf("ahead-one"))
   })
 })

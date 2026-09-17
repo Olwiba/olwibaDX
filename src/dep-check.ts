@@ -16,6 +16,8 @@
  * the real ones.
  */
 
+import { compare, satisfies } from './semver';
+
 export type DepFinding =
   /** Declared, nothing on disk. */
   | { kind: 'missing'; name: string; wanted: string }
@@ -188,96 +190,111 @@ export function checkDeps({
  * range checks downgrade to skipped — exact pins, which is where this check
  * earns its keep, still work everywhere.
  */
-interface BunSemver {
-  satisfies?: (version: string, range: string) => boolean;
-  order?: (a: string, b: string) => number;
-}
-
-function bunSemver(): BunSemver | undefined {
-  return (globalThis as { Bun?: { semver?: BunSemver } }).Bun?.semver;
-}
-
+/**
+ * The evaluators, from this package's own semver implementation.
+ *
+ * Deliberately not `Bun.semver`: the CLI runs under node via its shebang, so
+ * reaching for a Bun global meant every range counted as unverifiable in the
+ * one place the check is actually wired in.
+ */
 export function defaultSatisfies(version: string, range: string): boolean | undefined {
-  const fn = bunSemver()?.satisfies;
-  if (typeof fn !== 'function') return undefined;
-  try {
-    return fn(version, range);
-  } catch {
-    return undefined;
-  }
+  return satisfies(version, range);
 }
 
-/** Ordering counterpart to `defaultSatisfies`. Same runtime, same caveat. */
 export function defaultCompare(a: string, b: string): number | undefined {
-  const fn = bunSemver()?.order;
-  if (typeof fn !== 'function') return undefined;
-  try {
-    return fn(a, b);
-  } catch {
-    return undefined;
-  }
+  return compare(a, b);
 }
 
 const ORDER: DepFinding['kind'][] = ['stale', 'missing', 'unreadable', 'ahead', 'drifted'];
 
+/** Short reason, printed inline per row rather than as a group heading. */
 const LABELS: Record<DepFinding['kind'], string> = {
-  stale: 'Stale — an older version is installed than package.json pins',
-  missing: 'Missing — declared but not installed',
-  unreadable: 'Unreadable — installed but its manifest has no version',
-  ahead: 'Ahead — a newer version is installed than package.json pins',
-  drifted: 'Drifted — installed version is outside the declared range',
+  stale: 'stale',
+  missing: 'missing',
+  unreadable: 'unreadable',
+  ahead: 'ahead',
+  drifted: 'drifted',
 };
 
-const ADVICE: Partial<Record<DepFinding['kind'], string>> = {
-  stale: 'Run `bun install` to bring node_modules in line.',
-  missing: 'Run `bun install` to bring node_modules in line.',
-  unreadable: 'Run `bun install` to bring node_modules in line.',
-  ahead:
-    'Usually workspace hoisting: the root install resolved one copy for every member\n' +
-    '  and took the highest. Raise the pin in package.json rather than reinstalling.',
-};
+/**
+ * Colour, when the output is going somewhere that can show it.
+ *
+ * Off for a pipe or a file, and off when `NO_COLOR` is set, so a CI log or a
+ * redirect gets clean text rather than escape codes. The report is built as a
+ * string, so the decision is made once here rather than at each call site.
+ */
+const env = process.env ?? {};
+const colorEnabled =
+  !('NO_COLOR' in env) && (Boolean(process.stdout?.isTTY) || Boolean(env.FORCE_COLOR));
 
+const paint = (code: string, value: string) =>
+  colorEnabled ? `[${code}m${value}[0m` : value;
+
+const red = (value: string) => paint('31', value);
+const green = (value: string) => paint('32', value);
+const yellow = (value: string) => paint('33', value);
+const bold = (value: string) => paint('1', value);
+const dim = (value: string) => paint('2', value);
+
+/**
+ * Formats a report in the shape Raygun.Frontend's `scripts/depcheck.mjs` uses,
+ * so the two read the same across projects: a bracketed prefix, a count, a flat
+ * indented list one package per line, then the install instruction.
+ *
+ * Two departures, both because this checks more than presence does. Rows carry
+ * the reason and the version pair, since "stale" and "missing" want different
+ * things done about them and neither is legible from a bare name. And rows are
+ * marked `x` or `!` rather than only `x`, because a hoisted package is not a
+ * problem you can install your way out of.
+ */
 export function formatDepReport(result: DepCheckResult): string {
   const lines: string[] = [];
-  const checked = result.okCount + result.findings.length;
 
   if (result.findings.length === 0) {
-    const skipped = result.skippedCount > 0 ? `, ${result.skippedCount} not comparable` : '';
-    return `[dep-check] ${result.okCount} of ${checked} dependencies agree with package.json${skipped}`;
+    const skipped =
+      result.skippedCount > 0 ? ` (${result.skippedCount} without a version to compare)` : '';
+    return `${green('[dep-check]')} ${dim(`all ${result.okCount} packages match package.json${skipped}`)}`;
   }
 
+  const count = result.findings.length;
+  lines.push(`\n${red(bold(`[dep-check] ${count} problem package${count === 1 ? '' : 's'}:`))}\n`);
+
+  const ordered = ORDER.flatMap((kind) =>
+    result.findings.filter((finding) => finding.kind === kind),
+  );
+  const nameWidth = Math.max(...ordered.map((finding) => finding.name.length));
+  const reasonWidth = Math.max(...ordered.map((finding) => LABELS[finding.kind].length));
+
+  for (const finding of ordered) {
+    // Blocking findings stop whatever called this, so they carry the stronger
+    // mark and colour. A warning painted red says the opposite of what it means.
+    const isBlocking = finding.kind !== 'ahead' && finding.kind !== 'drifted';
+    const mark = isBlocking ? red('x') : yellow('!');
+    const value = isBlocking ? red : yellow;
+    const name = bold(finding.name.padEnd(nameWidth));
+    const reason = dim(LABELS[finding.kind].padEnd(reasonWidth));
+
+    const detail =
+      finding.kind === 'missing'
+        ? `${dim('nothing installed,')} ${finding.wanted} ${dim('required')}`
+        : finding.kind === 'unreadable'
+          ? `${dim('no version in its manifest,')} ${finding.wanted} ${dim('required')}`
+          : `${value(finding.installed)} ${dim('installed,')} ${finding.wanted} ${dim('required')}`;
+
+    lines.push(`  ${mark} ${name}  ${reason}  ${detail}`);
+  }
+
+  lines.push('');
   lines.push(
-    `\n[dep-check] ${result.findings.length} of ${checked} dependencies disagree with package.json\n`,
+    `  ${yellow('Run')} ${bold('bun install')} ${yellow('to install dependencies.')}`,
   );
 
-  for (const kind of ORDER) {
-    const group = result.findings.filter((finding) => finding.kind === kind);
-    if (group.length === 0) continue;
-
-    lines.push(`${LABELS[kind]}:`);
-    const width = Math.max(...group.map((finding) => finding.name.length));
-    for (const finding of group) {
-      const name = finding.name.padEnd(width);
-      if (finding.kind === 'missing') {
-        lines.push(`  ✗ ${name}  wants ${finding.wanted}, nothing installed`);
-      } else if (finding.kind === 'unreadable') {
-        lines.push(`  ✗ ${name}  wants ${finding.wanted}, installed copy has no version`);
-      } else {
-        lines.push(`  ✗ ${name}  wants ${finding.wanted}, has ${finding.installed}`);
-      }
-    }
-    lines.push('');
-  }
-
-  // One line of advice per kind actually present, deduplicated — three groups
-  // that all want `bun install` should say so once.
-  const seen = new Set<string>();
-  for (const kind of ORDER) {
-    if (!result.findings.some((finding) => finding.kind === kind)) continue;
-    const advice = ADVICE[kind];
-    if (!advice || seen.has(advice)) continue;
-    seen.add(advice);
-    lines.push(`  ${advice}`);
+  // Only worth saying when something is actually ahead, because it is the one
+  // row `bun install` will not fix: reinstalling reproduces the hoist.
+  if (result.findings.some((finding) => finding.kind === 'ahead')) {
+    lines.push(
+      `  ${dim('Packages marked')} ${yellow('ahead')} ${dim('are usually workspace hoisting. Raise the pin instead.')}`,
+    );
   }
 
   lines.push('');

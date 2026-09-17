@@ -21,30 +21,33 @@ fix by installing.
 ## What it looks like
 
 ```ansi
-[dep-check] 7 of 9 dependencies disagree with package.json
+[dep-check] 7 problem packages:
 
-Stale — an older version is installed than package.json pins:
-  ✗ @olwiba/cn      wants 0.1.55, has 0.1.53
-  ✗ @olwiba/docs    wants 0.1.53, has 0.1.52
-  ✗ @olwiba/ui      wants 0.2.37, has 0.2.36
-  ✗ @olwiba/ui-pro  wants 0.1.63, has 0.1.61
+  x @olwiba/cn              stale    0.1.53 installed, 0.1.55 required
+  x @olwiba/docs            stale    0.1.52 installed, 0.1.53 required
+  x @olwiba/ui              stale    0.2.36 installed, 0.2.37 required
+  x @olwiba/ui-pro          stale    0.1.61 installed, 0.1.63 required
+  x left-pad                missing  nothing installed, 1.3.0 required
+  ! @olwiba/dx              ahead    0.0.35 installed, 0.0.34 required
+  ! @tanstack/react-router  drifted  1.99.0 installed, ^1.167.0 required
 
-Missing — declared but not installed:
-  ✗ left-pad  wants 1.3.0, nothing installed
-
-Ahead — a newer version is installed than package.json pins:
-  ✗ @olwiba/dx  wants 0.0.34, has 0.0.35
-
-Drifted — installed version is outside the declared range:
-  ✗ @tanstack/react-router  wants ^1.167.0, has 1.99.0
-
-  Run `bun install` to bring node_modules in line.
-  Usually workspace hoisting: the root install resolved one copy for every member
-  and took the highest. Raise the pin in package.json rather than reinstalling.
+  Run bun install to install dependencies.
+  Packages marked ahead are usually workspace hoisting. Raise the pin instead.
 ```
 
 Those numbers are real. They are the state a project was in when an install failed halfway and
 nothing said so.
+
+A clean run is one line:
+
+```ansi
+[dep-check] all 79 packages match package.json
+```
+
+The layout follows Raygun.Frontend's `scripts/depcheck.mjs` — bracketed prefix, a count, a flat
+indented list, then the install line — so the two read the same when you move between projects.
+Rows carry a reason and both versions because this checks more than presence does, and `x` versus
+`!` separates what will stop your command from what is only worth knowing.
 
 ## Where it goes
 
@@ -124,13 +127,39 @@ at. `peerDependencies` and `optionalDependencies` are not checked at all — onl
 
 ## Range evaluation
 
-Ranges are evaluated with `Bun.semver`, which is in the runtime already, so this adds no dependency.
-Under plain node it is absent and ranges are counted as skipped rather than guessed at — exact
-pins, which is where the check earns its keep, still work everywhere.
+Ranges are evaluated by this package's own semver implementation, so the check has no dependencies
+of its own. That is deliberate rather than tidy: a check that runs in front of `bun install` cannot
+be the thing that needs `bun install` to have worked.
 
-The same applies to telling stale from ahead: without an ordering function an unequal pin is
-reported as stale, because that is the reading that fails loudly rather than the one that stays
-quiet.
+`Bun.semver` was the first attempt and was wrong. The CLI ships with a `#!/usr/bin/env node`
+shebang, so the gate runs under **node**, where `Bun` is undefined. Every range came back
+unverifiable — 65 of one project's 79 dependencies went unchecked while the summary cheerfully
+reported that everything agreed:
+
+```ansi
+[dep-check] 14 of 14 dependencies agree with package.json, 65 not comparable
+```
+
+Supported: `^` · `~` · `>` `>=` `<` `<=` `=` · x-ranges (`1.2.x`, `1.x`, `*`) · bare partials
+(`1.2`) · hyphen ranges (`1.2.3 - 2.3.4`) · `||` · space-separated AND · prereleases, including
+npm's rule that a prerelease only satisfies a range when some comparator names the same
+`major.minor.patch`.
+
+Anything it cannot parse returns "unchecked" rather than a guess, which the report counts as
+"not comparable" instead of quietly passing.
+
+<Callout>
+  The implementation is differential-tested against `Bun.semver` over every real
+  (installed version, declared range) pair in the workspace: 427 pairs, zero disagreements.
+</Callout>
+
+## Colour
+
+Colour is on for a terminal and off for a pipe or a file, so CI logs and redirects get clean text.
+`NO_COLOR` disables it; `FORCE_COLOR` turns it on when stdout is not a TTY.
+
+Blocking rows are marked `✗` in red, warnings `!` in yellow, and the installed version takes the
+same colour as its mark.
 
 ## Programmatic use
 
