@@ -13,6 +13,13 @@
 
 
 
+
+## 0.0.37
+
+### Added
+
+- Align output with Raygun shape
+
 ## 0.0.36
 
 ### Added
