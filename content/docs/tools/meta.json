@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "env-check",
+    "dep-check",
     "docs-check",
     "worktree-cleanup",
     "skills",

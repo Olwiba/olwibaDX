@@ -44,6 +44,10 @@
     "./env-check": {
       "import": "./dist/env-check.js",
       "types": "./dist/env-check.d.ts"
+    },
+    "./dep-check": {
+      "import": "./dist/dep-check.js",
+      "types": "./dist/dep-check.d.ts"
     }
   },
   "files": [
@@ -51,8 +55,8 @@
     "oxlint-design-system.json"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "bun run deps:check && tsup",
+    "dev": "bun run deps:check && tsup --watch",
     "test": "bun test",
     "tsc": "tsc --noEmit",
     "web:build": "fumadocs-mdx && vite build",
@@ -61,7 +65,17 @@
     "types:check": "fumadocs-mdx && tsc --noEmit && tsc --noEmit -p tsconfig.site.json",
     "presets:generate": "bun scripts/generate-env-presets.ts",
     "docs:check": "bun src/cli.ts docs-check",
+    "deps:check": "bun src/cli.ts dep-check",
     "env:check": "bun src/cli.ts env-check",
+    "demo:worktrees": "bun demos/worktree-cleanup.ts",
+    "demo:env": "bun demos/env-check.ts",
+    "demo:docs": "bun demos/docs-check.ts",
+    "demo:deps": "bun demos/dep-check.ts",
+    "demo:banners": "bun demos/dev-banner.ts",
+    "demo:skills": "bun demos/skills-install.ts",
+    "demo:assets": "bun demos/generate-assets.ts",
+    "demo:ascii": "bun demos/ascii-gif.ts",
+    "demo:previews": "bun demos/generate-previews.ts",
     "showcase:build": "bun scripts/build-showcase.ts"
   },
   "devDependencies": {

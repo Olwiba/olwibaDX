@@ -1,0 +1,154 @@
+---
+title: Dependency check
+description: Everything imports fine and the app still runs the wrong code. This is the check that notices.
+---
+
+A missing package announces itself. The first import fails, the dev server dies, and you install it.
+
+A *stale* package says nothing. The pin moved, nobody reinstalled, and every import still resolves
+against a version two releases behind the one the code was written for. The types check. The build
+passes. The bug shows up somewhere else entirely, hours later.
+
+`dx dep-check` compares `package.json` against `node_modules` and refuses to let that be quiet.
+
+```bash
+dx dep-check
+```
+
+Exits `1` when something is genuinely out of date, `0` when the only findings are ones you cannot
+fix by installing.
+
+## What it looks like
+
+```ansi
+[dep-check] 7 of 9 dependencies disagree with package.json
+
+Stale — an older version is installed than package.json pins:
+  ✗ @olwiba/cn      wants 0.1.55, has 0.1.53
+  ✗ @olwiba/docs    wants 0.1.53, has 0.1.52
+  ✗ @olwiba/ui      wants 0.2.37, has 0.2.36
+  ✗ @olwiba/ui-pro  wants 0.1.63, has 0.1.61
+
+Missing — declared but not installed:
+  ✗ left-pad  wants 1.3.0, nothing installed
+
+Ahead — a newer version is installed than package.json pins:
+  ✗ @olwiba/dx  wants 0.0.34, has 0.0.35
+
+Drifted — installed version is outside the declared range:
+  ✗ @tanstack/react-router  wants ^1.167.0, has 1.99.0
+
+  Run `bun install` to bring node_modules in line.
+  Usually workspace hoisting: the root install resolved one copy for every member
+  and took the highest. Raise the pin in package.json rather than reinstalling.
+```
+
+Those numbers are real. They are the state a project was in when an install failed halfway and
+nothing said so.
+
+## Where it goes
+
+In front of the commands that run your code, so the check happens when it can still help:
+
+```json
+{
+  "scripts": {
+    "dev": "dx dep-check && vite dev",
+    "build": "dx dep-check && vite build"
+  }
+}
+```
+
+`&&` is doing the work. A non-zero exit stops the chain, so a stale install never reaches a dev
+server. On a clean project the check adds one line and a few milliseconds:
+
+```ansi
+[dep-check] 79 of 79 dependencies agree with package.json, 3 not comparable
+```
+
+<Callout variant="warning">
+  Put it before the build step, not after. A check that runs once the bundle is already written
+  has told you about a build you now have to throw away.
+</Callout>
+
+In CI, use `--strict` so range drift fails the run too. A range that has quietly moved is worth
+knowing about on a machine that installs from scratch, even though it is not worth blocking a
+local dev server over.
+
+```yaml
+- run: bun install --frozen-lockfile
+- run: bunx dx dep-check --strict
+```
+
+## What it reports
+
+| Finding | Meaning | Blocks? |
+| --- | --- | --- |
+| **Stale** | Exact pin, an **older** version installed | Yes |
+| **Missing** | Declared, nothing on disk | Yes |
+| **Unreadable** | On disk, but its manifest has no version | Yes |
+| **Ahead** | Exact pin, a **newer** version installed | No |
+| **Drifted** | A range, and the installed version is outside it | No |
+
+### Why stale blocks and ahead does not
+
+They look like the same problem and have opposite fixes.
+
+**Stale** means an install was missed. The pin is the intent; the code on disk is behind it. Running
+`bun install` fixes it, so blocking costs you one command.
+
+**Ahead** is almost always workspace hoisting. A root install resolves a single copy of a package
+for every member of the workspace and takes the highest version any of them asked for, so a member
+whose pin lags ends up holding something newer than it declared. Installing again reproduces it
+exactly. The fix is to raise the pin, which is a commit, not a command — and blocking on it would
+wedge every lagging member of the workspace until someone did.
+
+## What it skips
+
+Specs that name a source rather than a version have nothing to compare:
+
+`workspace:` · `link:` · `file:` · `npm:` aliases · `git:` and git URLs · `github:` · `catalog:` ·
+`portal:` · plain URLs · `*` · `latest`
+
+These are counted and reported as "not comparable" so the summary never overstates what it looked
+at. `peerDependencies` and `optionalDependencies` are not checked at all — only `dependencies` and
+`devDependencies`, which are the ones this project is asserting it has.
+
+## Flags
+
+| Flag | Default | What it does |
+| --- | --- | --- |
+| `--dir <path>` | cwd | Project to check |
+| `--strict` | off | Range drift and hoisting also exit `1`. For CI |
+| `--warn-only` | off | Always exit `0`. For when you are mid-upgrade and know |
+
+## Range evaluation
+
+Ranges are evaluated with `Bun.semver`, which is in the runtime already, so this adds no dependency.
+Under plain node it is absent and ranges are counted as skipped rather than guessed at — exact
+pins, which is where the check earns its keep, still work everywhere.
+
+The same applies to telling stale from ahead: without an ordering function an unequal pin is
+reported as stale, because that is the reading that fails loudly rather than the one that stays
+quiet.
+
+## Programmatic use
+
+The core takes no filesystem at all. Every read is injected, which is what makes it testable and
+what lets it run against a project that is not the one you are in:
+
+```ts
+import { checkDeps, defaultCompare, defaultSatisfies } from "@olwiba/dx/dep-check"
+
+const result = checkDeps({
+  declared: [{ name: "@olwiba/ui", range: "0.2.37" }],
+  installedVersion: (name) => readVersionSomehow(name),
+  satisfies: defaultSatisfies,
+  compare: defaultCompare,
+})
+
+if (result.blocking > 0) process.exit(1)
+```
+
+`result` carries `findings`, `blocking`, `warnings`, `okCount` and `skippedCount`. Format it with
+`formatDepReport(result)` or read the findings directly.

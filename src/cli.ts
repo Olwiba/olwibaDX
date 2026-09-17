@@ -28,6 +28,8 @@ if (command === "skills" && subcommand === "install") {
   process.exitCode = await runEnvCheck()
 } else if (command === "docs-check") {
   process.exitCode = await runDocsCheck()
+} else if (command === "dep-check" || command === "deps") {
+  process.exitCode = await runDepCheck()
 } else {
   process.stdout.write(
     "Usage:\n" +
@@ -36,7 +38,8 @@ if (command === "skills" && subcommand === "install") {
       "  dx ascii-gif --text <text> --out <file.gif>\n" +
       "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n" +
       "  dx env-check [--example <.env.example>] [--file <.env>] [--optional a,b,c]\n" +
-      "  dx docs-check [--dir <content/docs>]\n",
+      "  dx docs-check [--dir <content/docs>]\n" +
+      "  dx dep-check [--dir <project>] [--warn-only] [--strict]\n",
   )
 }
 
@@ -383,6 +386,85 @@ async function runDocsCheck(): Promise<number> {
 
   process.stdout.write(`${formatDocsReport(result)}${BREAK}`)
   return result.findings.length > 0 ? 1 : 0
+}
+
+/**
+ * Compares package.json against node_modules.
+ *
+ * Exit codes are the point of this command: it is meant to sit in front of
+ * `dev` and `build`, so what it returns decides whether they run. An exact pin
+ * that disagrees with what is on disk exits 1 by default; a range that has
+ * drifted only prints, because transitive npm churn is constant and a check
+ * that stops work every morning gets deleted within a week.
+ *
+ * `--strict` promotes drift to blocking, `--warn-only` demotes everything to a
+ * warning. CI wants the first; someone mid-upgrade wants the second.
+ */
+async function runDepCheck(): Promise<number> {
+  const { readFileSync, existsSync } = await import("node:fs")
+  const { join } = await import("node:path")
+  const { checkDeps, defaultCompare, defaultSatisfies, formatDepReport } = await import("./dep-check")
+
+  const flags = parseFlags(process.argv.slice(3))
+  const dir = flags.dir ?? process.cwd()
+  const manifestPath = join(dir, "package.json")
+
+  if (!existsSync(manifestPath)) {
+    process.stderr.write(`No package.json at ${manifestPath}.${BREAK}`)
+    return 1
+  }
+
+  let manifest: {
+    dependencies?: Record<string, string>
+    devDependencies?: Record<string, string>
+  }
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
+  } catch {
+    process.stderr.write(`Could not parse ${manifestPath}.${BREAK}`)
+    return 1
+  }
+
+  const nodeModules = join(dir, "node_modules")
+  if (!existsSync(nodeModules)) {
+    process.stderr.write(
+      `${BREAK}[dep-check] no node_modules in ${dir}${BREAK}` +
+        `  Run \`bun install\`.${BREAK}${BREAK}`,
+    )
+    return 1
+  }
+
+  const declared = [
+    ...Object.entries(manifest.dependencies ?? {}),
+    ...Object.entries(manifest.devDependencies ?? {}),
+  ].map(([name, range]) => ({ name, range }))
+
+  const result = checkDeps({
+    declared,
+    // Read the installed manifest rather than resolving the entry point. A
+    // package can be on disk and unresolvable (no main, exports map that does
+    // not match this condition) while being perfectly correct, and resolution
+    // also walks up to parent node_modules — which would report a hoisted copy
+    // from an outer workspace as if it were installed here.
+    installedVersion: (name) => {
+      const path = join(nodeModules, ...name.split("/"), "package.json")
+      if (!existsSync(path)) return null
+      try {
+        const version = JSON.parse(readFileSync(path, "utf8")).version
+        return typeof version === "string" && version !== "" ? version : ""
+      } catch {
+        return ""
+      }
+    },
+    satisfies: defaultSatisfies,
+    compare: defaultCompare,
+  })
+
+  process.stdout.write(`${formatDepReport(result)}${BREAK}`)
+
+  if (flags["warn-only"] === "true") return 0
+  if (flags.strict === "true") return result.findings.length > 0 ? 1 : 0
+  return result.blocking > 0 ? 1 : 0
 }
 
 async function readAllStdin(): Promise<string> {

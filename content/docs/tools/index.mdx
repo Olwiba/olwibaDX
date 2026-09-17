@@ -12,6 +12,8 @@ Run in CI. Exit non-zero on a finding.
 
 - [`dx env-check`](/docs/tools/env-check): an environment against the example documenting it.
   Also at [/tools/env-check](/tools/env-check).
+- [`dx dep-check`](/docs/tools/dep-check): `package.json` against `node_modules`, so a stale
+  install cannot reach a dev server. Belongs in front of `dev` and `build`, not only in CI.
 - [`dx docs-check`](/docs/tools/docs-check): documentation pages nothing links to.
 
 ## Generators

@@ -31,7 +31,7 @@ jobs:
 
       - name: Validate package exports
         run: |
-          bun -e 'for (const path of ["@olwiba/dx", "@olwiba/dx/eslint", "@olwiba/dx/skills", "@olwiba/dx/generate-previews", "@olwiba/dx/ascii", "@olwiba/dx/ascii-gif", "@olwiba/dx/generate-assets", "@olwiba/dx/env-check"]) await import(path)'
+          bun -e 'for (const path of ["@olwiba/dx", "@olwiba/dx/eslint", "@olwiba/dx/skills", "@olwiba/dx/generate-previews", "@olwiba/dx/ascii", "@olwiba/dx/ascii-gif", "@olwiba/dx/generate-assets", "@olwiba/dx/env-check", "@olwiba/dx/dep-check"]) await import(path)'
           npm pack --dry-run
 
       - name: Validate CLI
@@ -52,3 +52,10 @@ jobs:
 
       - name: Check the docs pages document what they show
         run: bun run docs:check
+
+      # --strict because this runs on a scratch checkout that just installed
+      # from the lockfile. Range drift that is only worth a warning on a working
+      # machine is a real disagreement here: nothing hoisted it, nothing is
+      # mid-upgrade, so the lockfile and the manifest genuinely do not agree.
+      - name: Check node_modules matches package.json
+        run: bun src/cli.ts dep-check --strict
