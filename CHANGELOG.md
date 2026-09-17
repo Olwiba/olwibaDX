@@ -12,6 +12,13 @@
 
 
 
+
+## 0.0.36
+
+### Added
+
+- Compare package.json against node_modules
+
 ## 0.0.35
 
 ### Added
