@@ -48,6 +48,10 @@
     "./dep-check": {
       "import": "./dist/dep-check.js",
       "types": "./dist/dep-check.d.ts"
+    },
+    "./fake-api": {
+      "import": "./dist/fake-api/index.js",
+      "types": "./dist/fake-api/index.d.ts"
     }
   },
   "files": [

@@ -1,0 +1,158 @@
+---
+title: Fake API
+description: Answers the app's tRPC calls from named scenarios in development, with a drawer on every page to switch them.
+---
+
+Most screens have more states than a local database is ever in. Empty, full, a plan at its
+limit, a query that takes four seconds, a procedure that fails. Seeding each one by hand is
+slow, and whatever you seeded last is the state everyone else inherits.
+
+The fake API answers the app's own tRPC calls from scenarios written in source. The browser,
+the tRPC client and every component behave as they do against the real backend, because the
+answer arrives over the same HTTP request. Nothing in the app knows it is there.
+
+```bash
+bun run dev --fake-api
+```
+
+Every page gets a small tab at the bottom right. Hover it to see which scenario is live, click it
+to open the studio in a drawer:
+
+- **Scenarios**: switch the whole app between states, or back to the real API.
+- **Endpoints**: every procedure the scenarios know about, with an override for each. Take one
+  procedure from another scenario, slow it down, or make it fail with a 401, 403, 404 or 500.
+- **Recent calls**: what the page asked for and what answered it.
+
+The page reloads after each change. `Alt+Shift+F` opens and closes the drawer. The studio also
+works as a page of its own at `/__fake-api`.
+
+<Callout variant="info">
+  Development only. The plugin sets `apply: 'serve'`, so it does not exist in a production
+  build, and nothing a request carries can switch it on in a deployed app.
+</Callout>
+
+## Setup
+
+### 1. The plugin
+
+```ts
+// vite.config.ts
+import { fakeApi } from '@olwiba/dx/fake-api';
+
+export default defineConfig({
+  plugins: [
+    fakeApi({
+      presets: '/src/mocks/fake-api.ts',
+      cookieName: 'myapp_fake_api',
+      title: 'My app',
+      accentColor: '#f97316',
+    }),
+    // ...the framework's own plugins after it, so it sees requests first
+  ],
+});
+```
+
+### 2. The flag
+
+Vite rejects options it does not know, so `--fake-api` has to be taken out before Vite sees it.
+`dx vite` does that and passes everything else through:
+
+```json
+{
+  "scripts": {
+    "dev": "dx vite dev"
+  }
+}
+```
+
+`bun run dev --fake-api` then runs `vite dev` with `FAKE_API=1`. Setting `FAKE_API=1` yourself
+does the same.
+
+### 3. The scenarios
+
+A scenario is one coherent state of the product, as the data each procedure answers with:
+
+```ts
+// src/mocks/fake-api.ts
+import type { FakeApiPreset } from '@olwiba/dx/fake-api';
+
+export const presets: FakeApiPreset[] = [
+  {
+    id: 'populated',
+    label: 'Populated',
+    description: 'A working account with history behind it.',
+    responses: {
+      'projects.list': { items: PROJECTS, total: PROJECTS.length },
+      // A function of the input, for lookups. Returning undefined answers 404.
+      'projects.bySlug': (input) => PROJECTS.find((p) => p.slug === (input as { slug?: string })?.slug),
+    },
+  },
+  {
+    id: 'empty',
+    label: 'Empty',
+    description: 'First run. Nothing created yet.',
+    responses: {
+      'projects.list': { items: [], total: 0 },
+      'projects.bySlug': () => undefined,
+    },
+  },
+];
+```
+
+The module is loaded by the dev server the way it loads app code, so path aliases work and an
+edited fixture applies on the next request without a restart. Derive fixture types from the
+router (`inferRouterOutputs`) and a changed procedure breaks this file at compile time rather
+than on screen.
+
+### 4. The session
+
+A page behind a sign-in check resolves the session during server rendering, before any client
+code runs, so the fake API cannot answer it over HTTP. The active scenario travels in the cookie
+named by `cookieName` for this reason: read it in the server code that loads the session and
+return a fake one while it is set.
+
+```ts
+function fakeSessionFor(headers: Headers) {
+  if (process.env.NODE_ENV !== 'development') return null;
+  const scenario = readCookie(headers.get('cookie') ?? undefined, 'myapp_fake_api');
+  if (!scenario || scenario === 'off') return null;
+  return { user: { id: 'usr_fake_api', name: 'Ada' } };
+}
+```
+
+## What it answers
+
+| Request | Answer |
+| --- | --- |
+| A procedure the scenario defines | Its fixture, batched or not |
+| A lookup whose fixture returns `undefined` | 404, as the real API would |
+| A query the scenario does not define | 500 naming the missing fixture. Loud on purpose |
+| A mutation the scenario does not define | 403, with `readOnlyMessage`. Nothing is saved |
+| A non-tRPC write under `/api/` | 403. It would otherwise reach the real server with a fake session |
+| Anything, from a browser on the real API | Passed through untouched |
+
+A mutation can be given a fixture too, when a flow needs to get past it.
+
+## Without the flag
+
+`?fake=<scenario>` on any URL puts that one browser into a scenario, even when the dev server
+was started without `--fake-api`, and `?fake=off` takes it out. It is how a screenshot run asks
+for a state without a studio.
+
+## Options
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `presets` | required | A module path exporting `presets`, an array, or a function returning one |
+| `cookieName` | required | The cookie carrying the scenario. The session code reads it too |
+| `defaultPreset` | the first | The scenario `--fake-api` starts with |
+| `trpcPath` | `/api/trpc` | Where the tRPC handler is mounted |
+| `enabled` | `FAKE_API=1` | Fake every browser that has not opted out |
+| `refuseWritesUnder` | `/api/` | Refuse other writes under this prefix while faking. `false` to allow |
+| `readOnlyMessage` | a sentence | The refusal shown for writes |
+| `title` | `App` | The studio heading |
+| `accentColor` | blue | The launcher and selection colour |
+| `slowMs` | `2500` | How long a slowed procedure takes |
+
+Choices made in the studio live in the dev server's memory and reset when it restarts. A fake
+state should not outlive the session that chose it.

@@ -60,6 +60,21 @@ export default defineConfig({
 
 For tsup, swap `createDevBannerPlugin` for `createTsupBannerHook` and pass it to `onSuccess`. For a one-shot print, call `printBanner` directly.
 
+### Fake API
+
+Answers the app's tRPC calls from named scenarios in development, so any screen can be put into any state without touching a database. A tab at the bottom right of every page opens a drawer to switch scenarios, or to slow down or fail a single procedure.
+
+```ts
+// vite.config.ts
+import { fakeApi } from "@olwiba/dx/fake-api";
+
+export default defineConfig({
+  plugins: [fakeApi({ presets: "/src/mocks/fake-api.ts", cookieName: "myapp_fake_api" })],
+});
+```
+
+With `"dev": "dx vite dev"`, `bun run dev --fake-api` starts every browser on the first scenario. See the [docs](https://dx.olwiba.com/docs/tools/fake-api).
+
 ### ASCII Text
 
 Figlet renderer with a bundled DOS Rebel font. Powers the `<AsciiText>` component in `@olwiba/cn`.

@@ -30,6 +30,9 @@ if (command === "skills" && subcommand === "install") {
   process.exitCode = await runDocsCheck()
 } else if (command === "dep-check" || command === "deps") {
   process.exitCode = await runDepCheck()
+} else if (command === "vite") {
+  const { runVite } = await import("./vite-launcher")
+  process.exitCode = await runVite(process.argv.slice(3))
 } else {
   process.stdout.write(
     "Usage:\n" +
@@ -39,7 +42,8 @@ if (command === "skills" && subcommand === "install") {
       "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n" +
       "  dx env-check [--example <.env.example>] [--file <.env>] [--optional a,b,c]\n" +
       "  dx docs-check [--dir <content/docs>]\n" +
-      "  dx dep-check [--dir <project>] [--warn-only] [--strict]\n",
+      "  dx dep-check [--dir <project>] [--warn-only] [--strict]\n" +
+      "  dx vite [vite args] [--fake-api]\n",
   )
 }
 

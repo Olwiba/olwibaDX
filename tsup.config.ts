@@ -27,6 +27,8 @@ export default [
       // relative path into dist that nothing had written.
       "src/docs-check.ts",
       "src/dep-check.ts",
+      "src/vite-launcher.ts",
+      "src/fake-api/index.ts",
     ],
     format: ["esm"],
     dts: true,
