@@ -1,6 +1,6 @@
 {
   "name": "@olwiba/dx",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -83,7 +83,7 @@
     "showcase:build": "bun scripts/build-showcase.ts"
   },
   "devDependencies": {
-    "@olwiba/cn": "0.1.55",
+    "@olwiba/cn": "0.1.63",
     "@olwiba/docs": "0.1.53",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-router": "1.154.8",

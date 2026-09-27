@@ -14,6 +14,13 @@
 
 
 
+
+## 0.0.38
+
+### Added
+
+- Scenario-driven fake tRPC with an in-page studio
+
 ## 0.0.37
 
 ### Added
