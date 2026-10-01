@@ -4,7 +4,14 @@ import type { AddressInfo } from "node:net"
 import { tmpdir } from "node:os"
 import { afterEach, describe, test } from "node:test"
 import { resolveViteBin, splitViteArgs } from "../vite-launcher"
-import { createFakeApiHandler, createFakeApiStore, injectBeforeBodyEnd, parseTrpcCall } from "./index"
+import {
+  createFakeApiController,
+  createFakeApiHandler,
+  createFakeApiStore,
+  FAKE_API_SESSION_HEADER,
+  injectBeforeBodyEnd,
+  parseTrpcCall,
+} from "./index"
 import { overlaySnippet } from "./overlay"
 import { studioPage } from "./studio"
 import type { FakeApiPreset } from "./types"
@@ -268,6 +275,43 @@ describe("the fake API middleware", () => {
       body: JSON.stringify({ preset: null }),
     })
     assert.match(off.headers.get("set-cookie") ?? "", new RegExp(`${COOKIE}=off`))
+  })
+
+  test("agent sessions isolate scenario controls, overrides, and activity", async () => {
+    const base = await start(true)
+    const first = createFakeApiController({ baseUrl: base, sessionId: "worker-a" })
+    const second = createFakeApiController({ baseUrl: base, sessionId: "worker-b" })
+
+    await first.selectPreset("empty")
+    await first.setOverride("properties.list", "error:500")
+
+    assert.equal((await first.state()).active, "empty")
+    assert.equal(
+      (await first.state()).procedures.find((entry) => entry.path === "properties.list")?.override,
+      "error:500",
+    )
+    assert.equal((await second.state()).active, "populated")
+    assert.equal(
+      (await second.state()).procedures.find((entry) => entry.path === "properties.list")?.override,
+      null,
+    )
+
+    const failed = await fetch(`${base}/api/trpc/properties.list`, {
+      headers: { [FAKE_API_SESSION_HEADER]: "worker-a" },
+    })
+    const succeeded = await fetch(`${base}/api/trpc/properties.list`, {
+      headers: { [FAKE_API_SESSION_HEADER]: "worker-b" },
+    })
+    assert.equal(failed.status, 500)
+    assert.equal(succeeded.status, 200)
+    assert.equal((await first.activity()).length, 1)
+    assert.equal((await second.activity()).length, 1)
+
+    await first.clearActivity()
+    assert.equal((await first.activity()).length, 0)
+    assert.equal((await second.activity()).length, 1)
+    await first.dispose()
+    await second.dispose()
   })
 
   test("a browser on the real API keeps the launcher and reaches the app untouched", async () => {

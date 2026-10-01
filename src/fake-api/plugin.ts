@@ -27,9 +27,11 @@ import type { FakeApiOptions, FakeApiPreset, FakeVariant } from "./types"
  */
 
 export const STUDIO_PATH = "/__fake-api"
+export const FAKE_API_SESSION_HEADER = "x-olwiba-fake-api-session"
 const DEFAULT_TRPC_PATH = "/api/trpc"
 const DEFAULT_READ_ONLY = "This preview uses sample data. Exit preview to save changes."
 const DEFAULT_ACCENT = "#2563eb"
+const SESSION_LIMIT = 32
 
 type Next = (error?: unknown) => void
 type Middleware = (req: IncomingMessage, res: ServerResponse, next: Next) => void
@@ -137,7 +139,14 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
   const { cookieName } = options
 
   const source = options.presets
+  const storeOptions = {
+    enabled,
+    defaultPreset: options.defaultPreset,
+    readOnlyMessage,
+    slowMs: options.slowMs ?? 2500,
+  }
   let storePromise: Promise<FakeApiStore> | undefined
+  const sessionStores = new Map<string, FakeApiStore>()
   const load = async (): Promise<FakeApiPreset[]> => {
     if (typeof source === "string") {
       if (!loadModule) throw new Error("A presets module path needs the Vite plugin, which loads it.")
@@ -149,12 +158,7 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
   const ready = async (): Promise<FakeApiStore> => {
     const store = await (storePromise ??= load().then((presets) => {
       loaded = presets
-      return createFakeApiStore(presets, {
-        enabled,
-        defaultPreset: options.defaultPreset,
-        readOnlyMessage,
-        slowMs: options.slowMs ?? 2500,
-      })
+      return createFakeApiStore(presets, storeOptions)
     }))
     if (typeof source === "string") {
       // Vite caches the module until one of its files changes, so this is a
@@ -163,9 +167,38 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
       if (presets !== loaded) {
         loaded = presets
         store.replacePresets(presets)
+        for (const sessionStore of sessionStores.values()) sessionStore.replacePresets(presets)
       }
     }
     return store
+  }
+
+  function sessionIdOf(req: IncomingMessage): string | null {
+    const value = req.headers[FAKE_API_SESSION_HEADER]
+    const id = Array.isArray(value) ? value[0] : value
+    return id && /^[a-zA-Z0-9._:-]{1,128}$/.test(id) ? id : null
+  }
+
+  async function storeFor(req: IncomingMessage): Promise<{
+    store: FakeApiStore
+    sessionId: string | null
+  }> {
+    const shared = await ready()
+    const sessionId = sessionIdOf(req)
+    if (!sessionId) return { store: shared, sessionId: null }
+
+    let sessionStore = sessionStores.get(sessionId)
+    if (!sessionStore) {
+      if (sessionStores.size >= SESSION_LIMIT) {
+        const oldest = sessionStores.keys().next().value as string | undefined
+        if (oldest) sessionStores.delete(oldest)
+      }
+      sessionStore = createFakeApiStore(loaded ?? [], storeOptions)
+    } else {
+      sessionStores.delete(sessionId)
+    }
+    sessionStores.set(sessionId, sessionStore)
+    return { store: sessionStore, sessionId }
   }
 
   async function handle(req: IncomingMessage, res: ServerResponse, next: Next): Promise<void> {
@@ -176,7 +209,7 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
     //    this browser out, even while the fake API is on for everyone.
     const requested = url.searchParams.get("fake")
     if (requested !== null && isDocumentRequest(req, url)) {
-      const store = await ready()
+      const { store } = await storeFor(req)
       url.searchParams.delete("fake")
       res.statusCode = 302
       res.setHeader("set-cookie", cookieHeader(cookieName, store.isPreset(requested) ? requested : "off"))
@@ -187,7 +220,7 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
 
     // 2. The studio and its API.
     if (url.pathname === STUDIO_PATH || url.pathname.startsWith(`${STUDIO_PATH}/`)) {
-      const store = await ready()
+      const { store, sessionId } = await storeFor(req)
       const active = store.presetFor(readCookie(req.headers.cookie, cookieName))
       const route = url.pathname.slice(STUDIO_PATH.length)
 
@@ -210,7 +243,8 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
         }
         // The global choice follows only while the fake API is on for
         // everyone; this browser's cookie follows either way.
-        if (store.enabled && preset !== null) store.setPreset(preset)
+        if (sessionId) store.setPreset(preset)
+        else if (store.enabled && preset !== null) store.setPreset(preset)
         sendJson(res, 200, { ...store.snapshot(), active: preset }, {
           "set-cookie": cookieHeader(cookieName, preset ?? "off"),
         })
@@ -241,11 +275,16 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
         sendJson(res, 200, { ...store.snapshot(), active })
         return
       }
+      if (route === "/api/session" && req.method === "DELETE" && sessionId) {
+        sessionStores.delete(sessionId)
+        sendJson(res, 200, { ...store.snapshot(), active })
+        return
+      }
       sendJson(res, 404, { error: "Unknown fake API route." })
       return
     }
 
-    const store = await ready()
+    const { store } = await storeFor(req)
     const cookie = readCookie(req.headers.cookie, cookieName)
     const active = store.presetFor(cookie)
 
