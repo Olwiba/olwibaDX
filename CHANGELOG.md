@@ -15,6 +15,13 @@
 
 
 
+
+## 0.0.39
+
+### Added
+
+- Drawer on the app's own page, in the app's theme
+
 ## 0.0.38
 
 ### Added
