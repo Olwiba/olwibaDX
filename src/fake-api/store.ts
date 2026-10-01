@@ -104,6 +104,10 @@ export function createFakeApiStore(initialPresets: FakeApiPreset[], options: Fak
     overrides.clear()
   }
 
+  function clearActivity(): void {
+    activity.length = 0
+  }
+
   /**
    * Swaps in edited fixtures while keeping the session's choices. Choices that
    * point at a scenario which no longer exists are dropped.
@@ -141,7 +145,7 @@ export function createFakeApiStore(initialPresets: FakeApiPreset[], options: Fak
 
       if (override?.startsWith("error:")) {
         const status = Number(override.slice("error:".length))
-        record({ at: now.toISOString(), method, path, servedBy: override, ok: false })
+        record({ at: now.toISOString(), method, path, servedBy: override, ok: false, status })
         return trpcError(path, status, `Simulated ${ERROR_LABELS[override] ?? status} from the fake API.`)
       }
       if (override === "slow") {
@@ -155,7 +159,7 @@ export function createFakeApiStore(initialPresets: FakeApiPreset[], options: Fak
 
       const fixture = fixtureFrom(source, path)
       if (!fixture.found) {
-        record({ at: now.toISOString(), method, path, servedBy, ok: false })
+        record({ at: now.toISOString(), method, path, servedBy, ok: false, status: isWrite ? 403 : 500 })
         return isWrite
           ? trpcError(path, 403, options.readOnlyMessage)
           : trpcError(
@@ -172,10 +176,10 @@ export function createFakeApiStore(initialPresets: FakeApiPreset[], options: Fak
       if (value === undefined) {
         // A fixture that looks a record up and finds nothing answers the way
         // the real API would, rather than with an empty success.
-        record({ at: now.toISOString(), method, path, servedBy, ok: false })
+        record({ at: now.toISOString(), method, path, servedBy, ok: false, status: 404 })
         return trpcError(path, 404, "Not found in this fake API scenario.")
       }
-      record({ at: now.toISOString(), method, path, servedBy, ok: true })
+      record({ at: now.toISOString(), method, path, servedBy, ok: true, status: 200 })
       return trpcData(value)
     })
     return { results, delayMs }
@@ -220,6 +224,7 @@ export function createFakeApiStore(initialPresets: FakeApiPreset[], options: Fak
     setOverride,
     resetOverrides,
     replacePresets,
+    clearActivity,
     answer,
     snapshot,
     isPreset,

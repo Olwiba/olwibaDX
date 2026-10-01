@@ -15,16 +15,18 @@ answer arrives over the same HTTP request. Nothing in the app knows it is there.
 bun run dev --fake-api
 ```
 
-Every page gets a small tab at the bottom right. Hover it to see which scenario is live, click it
-to open the studio in a drawer:
+Every page gets a small tab on the right edge. Click it to open the studio in a drawer:
 
 - **Scenarios**: switch the whole app between states, or back to the real API.
-- **Endpoints**: every procedure the scenarios know about, with an override for each. Take one
+- **Customise**: every procedure the scenarios know about, with an override for each. Take one
   procedure from another scenario, slow it down, or make it fail with a 401, 403, 404 or 500.
-- **Recent calls**: what the page asked for and what answered it.
+  Collapsed until you need it.
+- **Recent calls**: a live log of what the page asked for, its status, and what answered it.
 
-The page reloads after each change. `Alt+Shift+F` opens and closes the drawer. The studio also
-works as a page of its own at `/__fake-api`.
+The drawer sits on the app's own page rather than in a frame, so it takes the app's colours,
+radius and font, and follows its light or dark theme. The page reloads after each change and the
+drawer reopens where it was. `Alt+Shift+F` opens and closes it. The studio also works as a page of
+its own at `/__fake-api`.
 
 <Callout variant="info">
   Development only. The plugin sets `apply: 'serve'`, so it does not exist in a production
@@ -151,7 +153,8 @@ for a state without a studio.
 | `refuseWritesUnder` | `/api/` | Refuse other writes under this prefix while faking. `false` to allow |
 | `readOnlyMessage` | a sentence | The refusal shown for writes |
 | `title` | `App` | The studio heading |
-| `accentColor` | blue | The launcher and selection colour |
+| `accentColor` | blue | The launcher colour, and the selection colour when the app has no `--primary` |
+| `launcherBottom` | `76` | The launcher's distance from the bottom of the viewport, in pixels |
 | `slowMs` | `2500` | How long a slowed procedure takes |
 
 Choices made in the studio live in the dev server's memory and reset when it restarts. A fake

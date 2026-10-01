@@ -5,6 +5,8 @@ import { tmpdir } from "node:os"
 import { afterEach, describe, test } from "node:test"
 import { resolveViteBin, splitViteArgs } from "../vite-launcher"
 import { createFakeApiHandler, createFakeApiStore, injectBeforeBodyEnd, parseTrpcCall } from "./index"
+import { overlaySnippet } from "./overlay"
+import { studioPage } from "./studio"
 import type { FakeApiPreset } from "./types"
 
 const PRESETS: FakeApiPreset[] = [
@@ -135,6 +137,20 @@ describe("createFakeApiStore", () => {
     assert.equal(snapshot.activity[0]?.path, "properties.list")
     assert.equal(snapshot.activity[0]?.ok, true)
     assert.equal(snapshot.activity[0]?.servedBy, "populated")
+    assert.equal(snapshot.activity[0]?.status, 200)
+  })
+
+  test("records the status each call answered with, and clears", () => {
+    const s = store()
+    s.setOverride("properties.list", "error:401")
+    s.answer({ paths: ["properties.list", "properties.get", "monitors.list"], batched: true, inputs: { 1: { id: "x" } } }, "GET", "populated")
+    s.answer({ paths: ["monitors.create"], batched: false, inputs: {} }, "POST", "populated")
+    assert.deepEqual(
+      s.snapshot().activity.map((entry) => entry.status),
+      [403, 500, 404, 401],
+    )
+    s.clearActivity()
+    assert.equal(s.snapshot().activity.length, 0)
   })
 })
 
@@ -189,7 +205,6 @@ describe("the fake API middleware", () => {
     // Server rendering saw the scenario on this very request.
     assert.match(seen[0]?.cookie ?? "", new RegExp(`${COOKIE}=populated`))
     assert.ok(body.includes('data-fake-api-overlay="true"'))
-    assert.ok(body.includes("Populated"))
     assert.ok(body.indexOf("data-fake-api-overlay") < body.indexOf("</body>"))
   })
 
@@ -260,7 +275,7 @@ describe("the fake API middleware", () => {
     const cookie = { cookie: `${COOKIE}=off` }
 
     const page = await (await fetch(`${base}/a/properties`, { headers: { ...html, ...cookie } })).text()
-    assert.ok(page.includes("Real API"))
+    assert.ok(page.includes('data-fake-api-overlay="true"'))
 
     const api = await fetch(`${base}/api/trpc/properties.setFavorite`, {
       method: "POST",
@@ -314,6 +329,37 @@ describe("injectBeforeBodyEnd", () => {
     } finally {
       server.close()
     }
+  })
+})
+
+describe("the browser client", () => {
+  const scriptOf = (html: string) => {
+    const start = html.indexOf('<script type="module">') + '<script type="module">'.length
+    return html.slice(start, html.indexOf("</script>", start))
+  }
+  const configOf = (script: string) => {
+    const encoded = /atob\("([^"]+)"\)/.exec(script)?.[1] ?? ""
+    return JSON.parse(Buffer.from(encoded, "base64").toString("utf8")) as Record<string, unknown>
+  }
+
+  test("the overlay and studio scripts parse, and carry their config safely", () => {
+    const overlay = overlaySnippet({ basePath: "/__fake-api", title: "A </script> app", accentColor: "#123456", launcherBottom: 120 })
+    const studio = studioPage({ basePath: "/__fake-api", title: "App", accentColor: "#123456" })
+    for (const script of [scriptOf(overlay), scriptOf(studio)]) {
+      assert.doesNotThrow(() => new Function(script))
+    }
+    // One script element: the title could not end it early.
+    assert.equal(overlay.split("</script>").length, 2)
+    assert.deepEqual(
+      { ...configOf(scriptOf(overlay)), css: undefined },
+      { base: "/__fake-api", embedded: true, title: "A </script> app", brand: "#123456", launcherBottom: 120, hostId: "olwiba-fake-api", css: undefined },
+    )
+    assert.equal(configOf(scriptOf(studio)).embedded, false)
+  })
+
+  test("the launcher names only the tool, not the scenario", () => {
+    const script = scriptOf(overlaySnippet({ basePath: "/__fake-api", title: "App", accentColor: "#123456", launcherBottom: 96 }))
+    assert.match(script, /<span class="text">Fake API<\/span>/)
   })
 })
 

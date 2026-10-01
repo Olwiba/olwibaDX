@@ -128,6 +128,12 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
   const readOnlyMessage = options.readOnlyMessage ?? DEFAULT_READ_ONLY
   const accentColor = options.accentColor ?? DEFAULT_ACCENT
   const title = options.title ?? "App"
+  const overlay = overlaySnippet({
+    basePath: STUDIO_PATH,
+    title,
+    accentColor,
+    launcherBottom: options.launcherBottom ?? 76,
+  })
   const { cookieName } = options
 
   const source = options.presets
@@ -225,6 +231,11 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
         sendJson(res, 200, { ...store.snapshot(), active })
         return
       }
+      if (route === "/api/activity" && req.method === "DELETE") {
+        store.clearActivity()
+        sendJson(res, 200, { ...store.snapshot(), active })
+        return
+      }
       if (route === "/api/overrides" && req.method === "DELETE") {
         store.resetOverrides()
         sendJson(res, 200, { ...store.snapshot(), active })
@@ -252,7 +263,7 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
       // Opted out of a fake API that is on for everyone: keep the launcher,
       // or the only way back would be a URL nobody remembers.
       if (store.enabled && isDocumentRequest(req, url)) {
-        injectBeforeBodyEnd(res, overlaySnippet({ basePath: STUDIO_PATH, accentColor, scenarioLabel: null }))
+        injectBeforeBodyEnd(res, overlay)
       }
       next()
       return
@@ -281,10 +292,7 @@ export function createFakeApiHandler(options: FakeApiOptions, loadModule?: LoadM
 
     // 6. Pages get the launcher.
     if (isDocumentRequest(req, url)) {
-      injectBeforeBodyEnd(
-        res,
-        overlaySnippet({ basePath: STUDIO_PATH, accentColor, scenarioLabel: store.labelOf(active) }),
-      )
+      injectBeforeBodyEnd(res, overlay)
     }
     next()
   }

@@ -38,6 +38,8 @@ export interface FakeApiActivity {
   /** What answered: a scenario id, an override, or a refusal. */
   servedBy: string
   ok: boolean
+  /** The HTTP status the procedure answered with. */
+  status: number
 }
 
 export interface FakeApiOptions {
@@ -74,8 +76,14 @@ export interface FakeApiOptions {
   readOnlyMessage?: string
   /** Product name for the studio heading. */
   title?: string
-  /** Launcher and selection colour. Default a neutral blue. */
+  /** Launcher colour, and the selection colour where the app has no `--primary`. Default a neutral blue. */
   accentColor?: string
+  /**
+   * Distance of the launcher tab from the bottom of the viewport, in pixels.
+   * Default 76, which clears a dev badge and the router devtools toggle
+   * stacked in the bottom-right corner.
+   */
+  launcherBottom?: number
   /** Delay for the `slow` variant, in milliseconds. Default 2500. */
   slowMs?: number
 }
