@@ -16,6 +16,13 @@
 
 
 
+
+## 0.0.40
+
+### Added
+
+- Add isolated agent controller
+
 ## 0.0.39
 
 ### Added
