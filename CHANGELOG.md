@@ -17,6 +17,17 @@
 
 
 
+
+## 0.0.41
+
+### Added
+
+- Copy-check that flags banned characters in rendered copy.
+
+### Fixed
+
+- Every page now opens at the top when you navigate to it, including when you go back.
+
 ## 0.0.40
 
 ### Added
