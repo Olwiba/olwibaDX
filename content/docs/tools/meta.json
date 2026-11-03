@@ -5,6 +5,7 @@
     "env-check",
     "dep-check",
     "docs-check",
+    "copy-check",
     "worktree-cleanup",
     "skills",
     "dev-banner",

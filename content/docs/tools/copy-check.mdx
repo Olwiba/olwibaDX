@@ -1,0 +1,55 @@
+---
+title: Copy check
+description: Fails the build when rendered copy contains a character the house style bans, the em dash by default.
+---
+
+House style that lives in a review comment does not hold. `dx copy-check` makes it mechanical:
+every page, string and piece of JSX text a reader can see is scanned for banned characters.
+
+```bash
+dx copy-check
+```
+
+Defaults to whichever of `content`, `src` and `site` exist. Exits `1` on any finding.
+
+## What it looks like
+
+```ansi
+3 banned characters in rendered copy:
+  content/docs/guides/deployment.mdx:14:22  U+2014  Push to main — the deploy runs from CI.
+  src/features/status/api/router.ts:87:56  U+2014  message: 'That service has never reported in — it may not be deployed yet.',
+  src/routes/(public)/pricing.tsx:41:18  U+2014  <p>Cancel any time — no lock-in.</p>
+
+Rewrite the sentence (a comma, a colon or a full stop usually reads better), or mark a deliberate
+literal with a "copy-check-allow: <reason>" comment on the same line.
+```
+
+## What counts as copy
+
+| Checked | Skipped |
+| --- | --- |
+| Markdown and MDX prose, frontmatter included (titles and descriptions render) | Code fences and inline code |
+| String literals, template literals and JSX text in `.ts` and `.tsx` | Comments, in either format |
+| | Tests, `.d.ts`, generated files and `generated/` folders |
+| | `README.md`, `CHANGELOG.md`, `AGENTS.md` and other repository notes |
+| | `node_modules`, `dist`, `public` and build output |
+
+An error message in a tRPC router counts: it is shown to the person who hit it. A comment explaining
+that router does not.
+
+## Flags
+
+| Flag | Default | What it does |
+| --- | --- | --- |
+| `--dir` | `content,src,site` | Comma-separated directories to scan. Missing ones are ignored. |
+| `--ban` | the em dash | Characters to ban instead, e.g. `--ban "–…"` for en dashes and ellipses. |
+
+## Allowing a literal
+
+When the glyph itself is the point (a placeholder for an empty table cell, say), mark the line:
+
+```tsx
+const empty = "—" // copy-check-allow: placeholder for a missing value
+```
+
+The reason is for the next reader; the check only looks for `copy-check-allow`.

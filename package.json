@@ -69,6 +69,7 @@
     "types:check": "fumadocs-mdx && tsc --noEmit && tsc --noEmit -p tsconfig.site.json",
     "presets:generate": "bun scripts/generate-env-presets.ts",
     "docs:check": "bun src/cli.ts docs-check",
+    "copy:check": "bun src/cli.ts copy-check",
     "deps:check": "bun src/cli.ts dep-check",
     "env:check": "bun src/cli.ts env-check",
     "demo:worktrees": "bun demos/worktree-cleanup.ts",

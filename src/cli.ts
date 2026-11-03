@@ -28,6 +28,8 @@ if (command === "skills" && subcommand === "install") {
   process.exitCode = await runEnvCheck()
 } else if (command === "docs-check") {
   process.exitCode = await runDocsCheck()
+} else if (command === "copy-check") {
+  process.exitCode = await runCopyCheck()
 } else if (command === "dep-check" || command === "deps") {
   process.exitCode = await runDepCheck()
 } else if (command === "vite") {
@@ -42,6 +44,7 @@ if (command === "skills" && subcommand === "install") {
       "  dx generate-assets --name <app> --icon <lucide-icon> --color <#hex> [--out <dir>] [--og-component <svg-or-image-path>]\n" +
       "  dx env-check [--example <.env.example>] [--file <.env>] [--optional a,b,c]\n" +
       "  dx docs-check [--dir <content/docs>]\n" +
+      "  dx copy-check [--dir <content,src,site>] [--ban <chars>]\n" +
       "  dx dep-check [--dir <project>] [--warn-only] [--strict]\n" +
       "  dx vite [vite args] [--fake-api]\n",
   )
@@ -389,6 +392,54 @@ async function runDocsCheck(): Promise<number> {
   )
 
   process.stdout.write(`${formatDocsReport(result)}${BREAK}`)
+  return result.findings.length > 0 ? 1 : 0
+}
+
+/**
+ * Reads every source and content file under the given directories and checks
+ * its rendered copy for banned characters (the em dash, by default).
+ *
+ * Defaults to whichever of `content`, `src` and `site` exist, which covers the
+ * docs sites, the packages and Genesis-shaped products alike.
+ */
+async function runCopyCheck(): Promise<number> {
+  const { readFileSync, existsSync, readdirSync } = await import("node:fs")
+  const { join, relative, sep } = await import("node:path")
+  const { checkCopy, formatCopyReport, isCheckedFile } = await import("./copy-check")
+
+  const flags = parseFlags(process.argv.slice(3))
+  const dirs = (flags.dir ?? "content,src,site")
+    .split(",")
+    .map((dir) => dir.trim())
+    .filter((dir) => dir && existsSync(dir))
+  if (dirs.length === 0) {
+    process.stderr.write(`Nothing to check: none of ${flags.dir ?? "content, src, site"} exists here.${BREAK}`)
+    return 1
+  }
+
+  const ignoredDirs = new Set(["node_modules", "dist", ".output", ".source", ".git", ".tanstack", "public"])
+  const files: string[] = []
+  const walk = (current: string) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        if (!ignoredDirs.has(entry.name)) walk(join(current, entry.name))
+      } else {
+        const full = join(current, entry.name)
+        if (isCheckedFile(full.split(sep).join("/"))) files.push(full)
+      }
+    }
+  }
+  dirs.forEach(walk)
+
+  const result = checkCopy(
+    files.sort().map((file) => ({
+      file: relative(process.cwd(), file).split(sep).join("/"),
+      source: readFileSync(file, "utf8"),
+    })),
+    { banned: flags.ban ? [...flags.ban] : undefined },
+  )
+
+  process.stdout.write(`${formatCopyReport(result)}${BREAK}`)
   return result.findings.length > 0 ? 1 : 0
 }
 
