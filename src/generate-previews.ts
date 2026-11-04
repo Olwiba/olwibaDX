@@ -195,7 +195,8 @@ export async function generatePreviews(config: GeneratePreviewsConfig): Promise<
     baseUrl,
     outputDir,
     components,
-    selector = '[data-slot="component-preview-canvas"]',
+    // Docs demos render in a <Sandbox> iframe or, on older pages, a ComponentPreview canvas.
+    selector = '[data-slot="sandbox-preview"], [data-slot="component-preview-canvas"]',
     themes = ['light', 'dark'],
     manifestPath,
     executablePath,
