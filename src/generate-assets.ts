@@ -2,6 +2,9 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { join, resolve } from "node:path"
 import type sharp from "sharp"
+import { createFaviconIco } from "./favicon-ico"
+
+export { createFaviconIco } from "./favicon-ico"
 
 export interface GenerateAssetsConfig {
   name: string
@@ -263,12 +266,19 @@ export async function generateAssets(
       ? buildIconSvgCustom(inner, viewBox, color, size)
       : buildIconSvgLucide(inner, color, size)
 
+  const icoImages: Buffer[] = []
   for (const size of FAVICON_SIZES) {
     const png = await sharpFn(Buffer.from(buildIcon(size))).png().toBuffer()
+    if (size <= 256) icoImages.push(png)
     const dest = join(faviconDir, `favicon-${size}.png`)
     writeFileSync(dest, png)
     written.push(dest)
   }
+
+  icoImages.push(await sharpFn(Buffer.from(buildIcon(256))).png().toBuffer())
+  const icoDest = join(outputDir, "favicon.ico")
+  writeFileSync(icoDest, createFaviconIco(icoImages))
+  written.push(icoDest)
 
   for (const [filename, size] of NAMED_ICONS) {
     const png = await sharpFn(Buffer.from(buildIcon(size))).png().toBuffer()

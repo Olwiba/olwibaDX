@@ -16,13 +16,14 @@ Writes to `public/` by default. Commit the output.
 
 ```ansi
 Generating assets for "olwibaDX"…
-Generated 12 files in public/
+Generated 13 files in public/
   public/favicon/favicon-16.png
   public/favicon/favicon-32.png
   public/favicon/favicon-48.png
   public/favicon/favicon-64.png
   public/favicon/favicon-192.png
   public/favicon/favicon-512.png
+  public/favicon.ico
   public/apple-touch-icon.png
   public/android-chrome-192x192.png
   public/android-chrome-512x512.png
@@ -45,6 +46,7 @@ Generated 12 files in public/
 
 ```
 public/
+  favicon.ico
   favicon/favicon-16.png
   favicon/favicon-32.png
   favicon/favicon-48.png
@@ -54,6 +56,13 @@ public/
 ```
 
 Those are the paths the `@olwiba/docs` root route expects, so a generated set wires itself up.
+
+`favicon.ico` contains lossless PNG frames at 16, 32, 48, 64, 192 and 256 pixels.
+It also supports browsers and preview services that request `/favicon.ico` directly.
+Keep the larger PNG links in the page head for consumers that prefer those formats.
+
+To package an existing set without regenerating its artwork, import `createFaviconIco`
+from `@olwiba/dx/generate-assets` and pass the square PNG buffers (up to 256 pixels).
 
 ## Peer dependencies
 
