@@ -19,6 +19,13 @@
 
 
 
+
+## 0.0.43
+
+### Fixed
+
+- Previews now capture Sandbox demos by default.
+
 ## 0.0.42
 
 No user-facing changes.
