@@ -3,6 +3,15 @@ import { DocsPage, clientLoader, getDocsSlugsFromPath, serverLoader } from '~/li
 import type { PageLoaderData } from '@olwiba/docs';
 
 export const Route = createFileRoute('/docs/$')({
+  server: {
+    handlers: {
+      // Markdown for agents (`.md`, `?mode=agent`, `Accept: text/markdown`); everything else renders the page.
+      GET: async ({ request, params, next }) => {
+        const [{ docsAgentResponse }, { source }] = await Promise.all([import('@olwiba/docs/agent'), import('~/lib/source')]);
+        return (await docsAgentResponse(source, request, params._splat)) ?? next();
+      },
+    },
+  },
   component: Page,
   loader: async ({ location }) => {
     const locationSlugs = getDocsSlugsFromPath(location.pathname);
