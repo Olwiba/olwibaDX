@@ -6,6 +6,7 @@ import { DocsHeader, cn } from '@olwiba/docs';
 const navItems = [
   { label: 'Docs', href: '/docs' },
   { label: 'Tools', href: '/docs/tools' },
+  { label: 'Harness', href: '/tools/harness-builder' },
 ];
 
 const REPO = 'https://github.com/Olwiba/olwibaDX';

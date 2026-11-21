@@ -1,0 +1,43 @@
+---
+title: Repository Harness Builder
+description: Create a Nexus-style coordination layer around independent repositories, agents and repeatable processes.
+---
+
+A repository harness is a small control layer around several independent Git repositories. It gives humans and coding agents one place to understand ownership, dependency direction, verification and release rules.
+
+The harness does not turn the repositories into a monorepo. Each child keeps its own Git history, remote and release lifecycle.
+
+## Build yours
+
+Use the [interactive Harness Builder](/tools/harness-builder) to choose:
+
+- the repositories in your system
+- what each repository owns
+- which coding agents you use
+- whether to include durable agent memory with a Lode structure
+- shared verification and release processes
+
+The builder generates everything locally in your browser and downloads a ZIP. Nothing is submitted or stored.
+
+## Install it
+
+1. Extract the ZIP beside or above your repositories.
+2. Move each repository into the path listed in `ECOSYSTEM.md`, or edit the generated paths to match your current layout.
+3. Open the harness root in your coding agent.
+4. Tell the agent to read `AGENTS.md` before making changes.
+5. Refine the generated ownership and command placeholders as your system becomes clearer.
+
+## The pattern
+
+The generated harness follows the core Nexus ideas:
+
+- reason globally, then edit locally in the owning repository
+- prefer upstream fixes over downstream workarounds
+- keep repositories and release lifecycles independent
+- give agents durable context instead of repeating it in every prompt
+- verify affected consumers when shared behavior changes
+- use existing release automation rather than reproducing it manually
+
+The output is deliberately plain Markdown and JSON. You own it after download and can adapt every rule.
+
+{/* api-reference: none — this is a guide to the interactive harness builder, not a package API */}
