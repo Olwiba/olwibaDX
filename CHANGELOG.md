@@ -20,6 +20,17 @@
 
 
 
+
+## 0.0.44
+
+### Added
+
+- Added shared CLI metadata output so tools can read consistent command metadata.
+
+### Fixed
+
+- Fixed CLI metadata validation so it handles Bun-aware metadata correctly.
+
 ## 0.0.43
 
 ### Fixed
