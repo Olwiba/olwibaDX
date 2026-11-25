@@ -93,11 +93,22 @@ jobs:
         run: |
           TAG="v${PKG_VERSION}"
           TGZ=$(ls artifacts/*.tgz | head -1)
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "Release $TAG"
-          fi
+          for ATTEMPT in 1 2 3 4 5; do
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release upload "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --clobber && exit 0
+            else
+              gh release create "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "Release $TAG" && exit 0
+            fi
+
+            if [ "$ATTEMPT" -eq 5 ]; then
+              echo "GitHub Release operation failed after $ATTEMPT attempts."
+              exit 1
+            fi
+
+            DELAY=$((ATTEMPT * 15))
+            echo "GitHub Release API failed on attempt $ATTEMPT; retrying in ${DELAY}s."
+            sleep "$DELAY"
+          done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
