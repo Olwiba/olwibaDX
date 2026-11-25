@@ -34,10 +34,15 @@ function paint(value: string, tone: CliMetaTone = 'default'): string {
   return value
 }
 
+function describeRuntime(): string {
+  const bunVersion = (process.versions as NodeJS.ProcessVersions & { bun?: string }).bun
+  return bunVersion ? `Bun ${bunVersion}` : `Node ${process.versions.node}`
+}
+
 export function describeCliPlatform(
   platformName = platform(),
   architecture = arch(),
-  runtime = typeof Bun === 'undefined' ? `Node ${process.versions.node}` : `Bun ${Bun.version}`,
+  runtime = describeRuntime(),
   osRelease = release(),
 ): string {
   const name = PLATFORM_NAMES[platformName] ?? platformName
