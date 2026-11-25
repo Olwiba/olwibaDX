@@ -83,6 +83,9 @@
     "demo:previews": "bun demos/generate-previews.ts",
     "showcase:build": "bun scripts/build-showcase.ts"
   },
+  "dependencies": {
+    "picocolors": "^1.1.1"
+  },
   "devDependencies": {
     "@olwiba/cn": "0.1.72",
     "@olwiba/docs": "0.1.58",

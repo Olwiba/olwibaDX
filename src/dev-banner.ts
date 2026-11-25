@@ -6,6 +6,10 @@ const shownBannerKeys = new Set<string>()
 export type BannerSegment = {
   text: string
   colorHex?: string
+  /** Optional vertical colour tiers applied only to this segment. */
+  rowColors?: string[]
+  /** Colour used for the shaded `░` glyphs in this segment. */
+  rowShadeColor?: string
 }
 
 type BannerOptions = {
@@ -58,6 +62,8 @@ function normalizeSegments(
       .map((segment) => ({
         text: segment.text,
         colorHex: segment.colorHex ?? WHITE_HEX,
+        rowColors: segment.rowColors,
+        rowShadeColor: segment.rowShadeColor,
       }))
     const segments = normalize(input.segments)
     const compactSegments =
@@ -127,6 +133,7 @@ function printRowColoredFiglet(lines: string[], rowColors: string[], rowShadeCol
 function printColoredFiglet(
   lines: string[],
   boundaryLines: string[][],
+  segments: BannerSegment[],
   ansiBySegment: string[]
 ) {
   for (let i = 0; i < lines.length; i++) {
@@ -139,7 +146,20 @@ function printColoredFiglet(
         segmentIndex < boundaryLines.length ? boundaryLines[segmentIndex]?.[i] ?? "" : full
       const end = Math.min(boundaryLine.length, full.length)
       const chunk = full.slice(cursor, end)
-      out += `${ansiBySegment[segmentIndex]}${chunk}`
+      const segment = segments[segmentIndex]
+      const rowColors = segment?.rowColors
+      const rowHex = rowColors?.[i % rowColors.length]
+      const foreground = rowHex
+        ? (hexToAnsi24(rowHex) ?? ansiBySegment[segmentIndex])
+        : ansiBySegment[segmentIndex]
+      const shade = segment?.rowShadeColor
+        ? (hexToAnsi24(segment.rowShadeColor) ?? foreground)
+        : foreground
+      for (const char of chunk) {
+        if (char === " ") out += `${RESET} `
+        else if (char === "░") out += `${shade}${char}`
+        else out += `${foreground}${char}`
+      }
       cursor = end
     }
 
@@ -165,7 +185,7 @@ export async function printBanner(input: string | BannerSegment[] | BannerOption
     if (rowColors && rowColors.length > 0) {
       printRowColoredFiglet(primary.lines, rowColors, rowShadeColor)
     } else {
-      printColoredFiglet(primary.lines, primary.boundaryLines, primary.ansiBySegment)
+      printColoredFiglet(primary.lines, primary.boundaryLines, segments, primary.ansiBySegment)
     }
     return
   }
@@ -176,6 +196,7 @@ export async function printBanner(input: string | BannerSegment[] | BannerOption
       printColoredFiglet(
         compactFiglet.lines,
         compactFiglet.boundaryLines,
+        compactSegments,
         compactFiglet.ansiBySegment
       )
       return
