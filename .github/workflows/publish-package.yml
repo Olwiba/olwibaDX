@@ -93,6 +93,7 @@ jobs:
         run: |
           TAG="v${PKG_VERSION}"
           TGZ=$(ls artifacts/*.tgz | head -1)
+          ASSET_NAME=$(basename "$TGZ")
           for ATTEMPT in 1 2 3 4 5; do
             DRAFT_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
               --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id" \
@@ -103,10 +104,15 @@ jobs:
                 -F draft=false \
                 -f name="$TAG" \
                 -f body="Release $TAG" >/dev/null \
-                && gh release upload "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --clobber \
+                && gh release upload "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" \
                 && exit 0
             elif gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-              gh release upload "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --clobber && exit 0
+              if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+                --jq ".assets[] | select(.name == \"${ASSET_NAME}\") | .name" \
+                | grep -Fxq "$ASSET_NAME"; then
+                exit 0
+              fi
+              gh release upload "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" && exit 0
             else
               gh release create "$TAG" "$TGZ" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "Release $TAG" && exit 0
             fi
